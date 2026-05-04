@@ -4,7 +4,6 @@
   "schema": "swap",
   "match": {
     "source": "ethereum",
-    "domains": ["app.uniswap.org"],
     "method": "eth_sendTransaction",
     "to": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
     "abi": [
@@ -14,8 +13,7 @@
   "extract": {
     "static": {
       "chainIn": 1,
-      "chainOut": 1,
-      "provider": "Uniswap V2"
+      "chainOut": 1
     },
     "fields": {
       "tokenIn": "$decoded.path[0]",

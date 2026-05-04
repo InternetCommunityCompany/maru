@@ -62,7 +62,7 @@ safe to add liberally.
 | Field         | Type                              | Notes |
 |---------------|-----------------------------------|-------|
 | `source`      | `"fetch" \| "xhr" \| "ethereum"` or array, optional | Restricts which interceptor source(s) this template applies to. Omit to match any source. |
-| `domains`     | `string[]`                        | Page domains. Matched against `window.location.host`; subdomain matches are accepted (`app.jumper.xyz` matches `jumper.xyz`). |
+| `domains`     | `string[]`, optional              | Page domains. Matched against `window.location.host`; subdomain matches are accepted (`app.jumper.xyz` matches `jumper.xyz`). Omit to match any host — useful when the template is keyed on a contract address (a forked Uniswap router runs on a thousand UIs) and the dapp identity doesn't matter. `SwapEvent.domain` still records the actual host. |
 | `method`      | `string` or `string[]`, optional  | Matches `event.method` — the HTTP verb for fetch/xhr (`"POST"`), or the JSON-RPC method name for ethereum (`"eth_sendTransaction"`). |
 | `urlPattern`  | `string`, optional                | JavaScript regex tested against the full request URL. Only meaningful for fetch/xhr; ignored for ethereum events. |
 | `to`          | `string` or `string[]`, optional  | Transaction recipient filter for ethereum events. Compared case-insensitively against `params[0].to`. Ignored for non-ethereum sources. |
@@ -147,7 +147,7 @@ dapp's own labelling.
 | `amountOutMin` | string  | no       | after-slippage minimum, base-units |
 | `fromAddress`  | string  | no       | sender |
 | `toAddress`    | string  | no       | recipient |
-| `provider`     | string  | no       | display name of the routing/aggregator step (e.g. `"Squid"`, `"CCTPv2 + Mayan"`) |
+| `provider`     | string  | no       | display name of the routing/aggregator step (e.g. `"Squid"`, `"CCTPv2 + Mayan"`). Leave unset on contract-keyed templates that could match forked contracts — the contract address is the real identity; the consumer can resolve a name from `to` if they want one. |
 
 `chainIn` / `chainOut` are coerced to numbers; the other fields to strings. A
 path that resolves to `null`/`undefined` simply omits the field — and if it's
@@ -231,8 +231,7 @@ arguments under `$decoded`:
   "extract": {
     "static": {
       "chainIn": 1,
-      "chainOut": 1,
-      "provider": "Uniswap V2"
+      "chainOut": 1
     },
     "fields": {
       "tokenIn":      "$decoded.path[0]",

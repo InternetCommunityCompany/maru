@@ -18,8 +18,8 @@ export type Template = {
   match: {
     /** Restricts which interceptor source(s) this template applies to. Omit to match any source. */
     source?: Source | Source[];
-    /** Page hosts. Matches the page host or any subdomain of one. */
-    domains: string[];
+    /** Page hosts. Matches the page host or any subdomain of one. Omit to match any host (useful for templates keyed on a contract address rather than a specific dapp). */
+    domains?: string[];
     /** Matches `event.method` (HTTP verb for fetch/xhr, RPC method name for ethereum). */
     method?: string | string[];
     /** URL regex; only meaningful for fetch/xhr. Ignored for ethereum events. */
