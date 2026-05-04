@@ -1,0 +1,25 @@
+{
+  "id": "jumper",
+  "name": "Jumper",
+  "schema": "swap",
+  "match": {
+    "domains": ["jumper.xyz", "jumper.exchange"],
+    "method": "POST",
+    "urlPattern": "^https://api\\.jumper\\.xyz/pipeline/v\\d+/advanced/routes(\\?|$)"
+  },
+  "extract": {
+    "iterate": "$response.routes",
+    "fields": {
+      "chainIn": "$item.fromChainId",
+      "chainOut": "$item.toChainId",
+      "tokenIn": "$item.fromToken.address",
+      "tokenOut": "$item.toToken.address",
+      "amountIn": "$item.fromAmount",
+      "amountOut": "$item.toAmount",
+      "amountOutMin": "$item.toAmountMin",
+      "fromAddress": "$item.fromAddress",
+      "toAddress": "$item.toAddress",
+      "provider": "$item.steps[0].toolDetails.name"
+    }
+  }
+}

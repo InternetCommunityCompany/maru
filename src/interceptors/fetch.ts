@@ -1,6 +1,17 @@
-import type { InterceptedEvent } from "@/types";
-import { makeIdGenerator, safeText } from "./util";
+import type { InterceptedEvent } from "./types";
+import { makeIdGenerator } from "./make-id-generator";
+import { safeText } from "./safe-text";
 
+/**
+ * Patches `window.fetch` to emit `InterceptedEvent`s for every call.
+ *
+ * Must be called at `document_start` before any dapp script captures a
+ * reference to `fetch`, otherwise calls made via the captured reference will
+ * bypass the patch. Each call emits a `request` event before the network
+ * roundtrip and a `response` (or `error`) event after, sharing the same `id`.
+ * The patched `fetch` itself is fully transparent — return values, thrown
+ * errors, and timing are unchanged.
+ */
 export function installFetchInterceptor(
   emit: (event: InterceptedEvent) => void,
 ): void {

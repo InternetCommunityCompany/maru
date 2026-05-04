@@ -1,17 +1,13 @@
-import { BackgroundAdapter, provideEventChannel } from "@/messaging";
+import { BackgroundAdapter } from "@/messaging/background-adapter";
+import { provideEventChannel } from "@/messaging/channel";
 
 export default defineBackground(() => {
   provideEventChannel(new BackgroundAdapter(), (event) => {
-    if (event.kind === "json-rpc") {
-      console.log(
-        `[maru rpc] ${event.source} ${event.phase} ${event.method}`,
-        event,
-      );
-    } else {
-      console.log(
-        `[maru http] ${event.source} ${event.phase} ${event.method} ${event.url}`,
-        event,
-      );
-    }
+    console.log(
+      `[maru ${event.type}] ${event.domain} via ${event.provider ?? event.templateId}: ` +
+        `${event.amountIn} ${event.tokenIn} (chain ${event.chainIn}) ` +
+        `→ ${event.amountOut} ${event.tokenOut} (chain ${event.chainOut})`,
+      event,
+    );
   });
 });

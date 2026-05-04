@@ -1,5 +1,13 @@
-export type Phase = "request" | "response" | "error";
+type Phase = "request" | "response" | "error";
 
+/**
+ * A raw event emitted by an interceptor for each request/response phase.
+ *
+ * Discriminated by `source`. The fetch and XHR variants share an HTTP shape;
+ * the ethereum variant carries already-decoded EIP-1193 calls. The `id` is
+ * stable across the request and response phases of the same call so consumers
+ * can correlate them.
+ */
 export type InterceptedEvent =
   | {
       source: "fetch";
@@ -33,31 +41,4 @@ export type InterceptedEvent =
       params?: unknown;
       result?: unknown;
       error?: string;
-    };
-
-export type EventSource = InterceptedEvent["source"];
-
-export type ParsedEvent =
-  | {
-      kind: "json-rpc";
-      source: EventSource;
-      phase: Phase;
-      id: string;
-      method: string;
-      params?: unknown;
-      result?: unknown;
-      error?: string;
-      transport?: { url?: string; status?: number; providerInfo?: { uuid?: string; name?: string; rdns?: string } };
-      raw: InterceptedEvent;
-    }
-  | {
-      kind: "http";
-      source: "fetch" | "xhr";
-      phase: Phase;
-      id: string;
-      url: string;
-      method: string;
-      status?: number;
-      error?: string;
-      raw: InterceptedEvent;
     };

@@ -1,5 +1,5 @@
-import type { InterceptedEvent } from "@/types";
-import { makeIdGenerator } from "./util";
+import type { InterceptedEvent } from "./types";
+import { makeIdGenerator } from "./make-id-generator";
 
 type RequestArgs = { method: string; params?: unknown };
 type EthereumProvider = {
@@ -16,6 +16,21 @@ type Eip6963Detail = { info?: Eip6963ProviderInfo; provider?: EthereumProvider }
 
 const PATCHED = Symbol.for("maru-ethereum-patched");
 
+/**
+ * Patches every reachable EIP-1193 provider to emit `InterceptedEvent`s for
+ * each `request({ method, params })` call.
+ *
+ * Covers three injection paths:
+ *   1. A provider already on `window.ethereum` at `document_start`.
+ *   2. A provider assigned to `window.ethereum` later (trapped via a
+ *      configurable property setter, with a 10s polling fallback if the
+ *      property was already locked by another extension).
+ *   3. EIP-6963 providers (subscribes to `eip6963:announceProvider` and
+ *      dispatches `eip6963:requestProvider` to flush already-loaded ones).
+ *
+ * Each provider is patched at most once — re-runs are idempotent via a
+ * symbol-keyed marker on the provider object.
+ */
 export function installEthereumInterceptor(
   emit: (event: InterceptedEvent) => void,
 ): void {

@@ -1,5 +1,5 @@
-import type { InterceptedEvent } from "@/types";
-import { makeIdGenerator } from "./util";
+import type { InterceptedEvent } from "./types";
+import { makeIdGenerator } from "./make-id-generator";
 
 type Tracked = {
   id: string;
@@ -10,6 +10,15 @@ type Tracked = {
 
 const trackedSym = Symbol("maru-xhr");
 
+/**
+ * Patches `XMLHttpRequest.prototype` to emit `InterceptedEvent`s for every call.
+ *
+ * Must be called at `document_start`. The patch wraps `open` to capture the
+ * URL/method, `send` to capture the body and emit a `request` event, and
+ * subscribes to `loadend` to emit `response` or `error`. Response bodies are
+ * only captured for `responseType === ""` or `"text"`; binary/JSON-typed
+ * responses leave `responseBody` as `null`.
+ */
 export function installXhrInterceptor(
   emit: (event: InterceptedEvent) => void,
 ): void {

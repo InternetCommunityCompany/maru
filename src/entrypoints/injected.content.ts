@@ -1,6 +1,8 @@
-import { installInterceptors } from "@/interceptors";
-import { MainAdapter, injectEventChannel } from "@/messaging";
-import { parse } from "@/parser";
+import { installInterceptors } from "@/interceptors/install-interceptors";
+import { injectEventChannel } from "@/messaging/channel";
+import { MainAdapter } from "@/messaging/main-adapter";
+import { matchTemplates } from "@/template-engine/match-templates";
+import { registry } from "@/templates/registry";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -10,9 +12,9 @@ export default defineContentScript({
     const channel = injectEventChannel(new MainAdapter());
 
     installInterceptors((rawEvent) => {
-      for (const parsed of parse(rawEvent)) {
+      for (const swap of matchTemplates(rawEvent, registry)) {
         // fire-and-forget — dapp must not block on extension round-trip
-        void channel.emit(parsed).catch(() => {});
+        void channel.emit(swap).catch(() => {});
       }
     });
   },

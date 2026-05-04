@@ -1,4 +1,4 @@
-import { startContentRelay } from "@/messaging";
+import { startContentRelay } from "@/messaging/relay";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
