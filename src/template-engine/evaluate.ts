@@ -2,7 +2,7 @@ import type { EvalContext } from "./types";
 
 type Token = { kind: "key"; key: string } | { kind: "index"; index: number };
 
-const TOKEN_RE = /\.([^.\[]+)|\[(\d+)\]/g;
+const TOKEN_RE = /\.([^.\[]+)|\[(-?\d+)\]/g;
 
 function parsePath(expr: string): { source: string; tokens: Token[] } | null {
   if (!expr.startsWith("$")) return null;
@@ -27,12 +27,14 @@ function parsePath(expr: string): { source: string; tokens: Token[] } | null {
  * Resolves a template path expression against an `EvalContext`.
  *
  * Grammar: `$<source>` followed by zero or more `.<key>` accessors and
- * `[<n>]` numeric indices. Returns `undefined` for unparseable expressions,
+ * `[<n>]` numeric indices. Negative indices count from the end (`[-1]` is
+ * the last element). Returns `undefined` for unparseable expressions,
  * unknown sources, or any null/missing intermediate. There is no wildcard,
  * slice, filter, or arithmetic — see `docs/templates.md`.
  *
  * @example
  * evaluate("$item.steps[0].toolDetails.name", ctx); // "Squid"
+ * evaluate("$decoded.path[-1]", ctx);               // last element
  */
 export function evaluate(expr: string, ctx: EvalContext): unknown {
   const parsed = parsePath(expr);
@@ -42,8 +44,11 @@ export function evaluate(expr: string, ctx: EvalContext): unknown {
     if (cursor == null) return undefined;
     if (tok.kind === "key") {
       cursor = (cursor as Record<string, unknown>)[tok.key];
+    } else if (Array.isArray(cursor)) {
+      const idx = tok.index < 0 ? cursor.length + tok.index : tok.index;
+      cursor = cursor[idx];
     } else {
-      cursor = Array.isArray(cursor) ? cursor[tok.index] : undefined;
+      cursor = undefined;
     }
   }
   return cursor;

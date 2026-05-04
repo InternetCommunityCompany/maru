@@ -8,18 +8,20 @@ them lives in `src/template-engine/`.
 ## Pipeline
 
 Templates run in the **MAIN-world content script** (the page context) on the
-**response** phase of an intercepted `fetch`/XHR call. A template that matches
-emits one or more typed events (currently `SwapEvent`) over the comctx channel
-to the background.
+**response** phase of any intercepted call — `fetch`, `XMLHttpRequest`, or a
+wallet-injected `window.ethereum.request`. A template that matches emits one
+or more typed events (currently `SwapEvent`) over the comctx channel to the
+background.
 
 ```
-fetch/XHR response  ──►  template engine  ──►  SwapEvent[]
-                            │
-                            └─ runs templates from src/templates/
+intercepted response  ──►  template engine  ──►  SwapEvent[]
+                              │
+                              └─ runs templates from src/templates/
 ```
 
-Matching is gated by three cheap checks (page host, HTTP method, URL regex)
-before any JSON parsing happens, so templates are safe to add liberally.
+Matching is gated by cheap checks (interceptor source, page host, event
+method, optional URL regex) before any JSON parsing happens, so templates are
+safe to add liberally.
 
 ## Template structure
 
@@ -57,11 +59,14 @@ before any JSON parsing happens, so templates are safe to add liberally.
 
 ### Match block
 
-| Field         | Type       | Notes |
-|---------------|------------|-------|
-| `domains`     | `string[]` | Page domains the template applies to. Matched against `window.location.host`. A template fires when host equals one of these or is a subdomain of one (`app.jumper.xyz` matches `jumper.xyz`). |
-| `method`      | `string?`  | HTTP method. Optional; case-sensitive. |
-| `urlPattern`  | `string`   | JavaScript regex (string-form), tested against the full request URL. |
+| Field         | Type                              | Notes |
+|---------------|-----------------------------------|-------|
+| `source`      | `"fetch" \| "xhr" \| "ethereum"` or array, optional | Restricts which interceptor source(s) this template applies to. Omit to match any source. |
+| `domains`     | `string[]`                        | Page domains. Matched against `window.location.host`; subdomain matches are accepted (`app.jumper.xyz` matches `jumper.xyz`). |
+| `method`      | `string` or `string[]`, optional  | Matches `event.method` — the HTTP verb for fetch/xhr (`"POST"`), or the JSON-RPC method name for ethereum (`"eth_sendTransaction"`). |
+| `urlPattern`  | `string`, optional                | JavaScript regex tested against the full request URL. Only meaningful for fetch/xhr; ignored for ethereum events. |
+| `to`          | `string` or `string[]`, optional  | Transaction recipient filter for ethereum events. Compared case-insensitively against `params[0].to`. Ignored for non-ethereum sources. |
+| `abi`         | `string[]`, optional              | Human-readable function signatures. When set on an ethereum-source template, the engine decodes `params[0].data` against these signatures and binds the named arguments to `$decoded`. The selector is derived automatically; templates that fail to decode are silently skipped. |
 
 A template only runs if **all** match conditions pass. Anything stricter
 (headers, body shape, etc.) can be expressed by tightening `urlPattern` or by
@@ -73,10 +78,12 @@ event).
 | Field      | Type                       | Notes |
 |------------|----------------------------|-------|
 | `iterate`  | `string?`                  | A path that resolves to an array. When present, the engine emits one event per element, with that element bound to `$item` for the duration of `fields` evaluation. When absent, exactly one event is considered. |
-| `fields`   | `Record<string,string>`    | Maps each schema field name to a path expression. |
+| `static`   | `Record<string, unknown>?` | Literal field values applied first as defaults. Use for values that can't come from the wire (`chainIn`/`chainOut` on a chain-specific ethereum template, a hardcoded `provider` name, etc.). Coerced like `fields` outputs. |
+| `fields`   | `Record<string,string>`    | Maps each schema field name to a path expression. Resolved values override `static` per-iteration. |
 
-If a required schema field is missing or its path resolves to `undefined`, the
-event is dropped silently. Optional fields are simply omitted from the output.
+If a required schema field is missing (neither `static` nor `fields` produce
+a value), the event is dropped silently. Optional fields are simply omitted
+from the output.
 
 ## Path expressions
 
@@ -93,18 +100,24 @@ $url.search.someParam
 
 ### Sources
 
-| Source     | Available when                                | Value |
-|------------|-----------------------------------------------|-------|
-| `$request` | request had a body                            | `JSON.parse(requestBody)` (or `undefined` if not JSON) |
-| `$response`| response had a body                           | `JSON.parse(responseBody)` (or `undefined` if not JSON) |
-| `$url`     | always                                        | `{ host, path, full, search: { [k]: string } }` |
-| `$method`  | always                                        | HTTP method string |
-| `$item`    | only inside a template that uses `iterate`    | the current array element |
+The bound sources depend on the interceptor source of the matched event:
+
+| Source     | fetch/xhr | ethereum | Value |
+|------------|-----------|----------|-------|
+| `$request` | ✓         |          | `JSON.parse(requestBody)` (or `undefined` if not JSON) |
+| `$response`| ✓         |          | `JSON.parse(responseBody)` (or `undefined` if not JSON) |
+| `$url`     | ✓         |          | `{ host, path, full, search: { [k]: string } }` |
+| `$method`  | ✓         | ✓        | HTTP verb (fetch/xhr) or RPC method name (ethereum) |
+| `$params`  |           | ✓        | the JSON-RPC params (typically an array) |
+| `$result`  |           | ✓        | the JSON-RPC result |
+| `$decoded` |           | ✓        | ABI-decoded function args, keyed by parameter name. Only bound when `match.abi` is set and decoding succeeds. |
+| `$item`    | ✓         | ✓        | the current array element (only inside `iterate`) |
 
 ### Operators
 
 - `.foo` — object property access.
 - `[N]` — numeric array index (zero-based).
+- `[-N]` — index from the end (`[-1]` is the last element).
 
 That's the whole grammar. There is intentionally no wildcard, slice, filter,
 or arithmetic — if a template needs more, prefer to widen `iterate` instead.
@@ -172,7 +185,7 @@ See `src/templates/jumper.json` for the full template.
 2. Append it to the `registry` array in `src/templates/registry.ts`:
    ```ts
    import dapp from "./dapp.json";
-   export const registry: Template[] = [jumper as Template, dapp as Template];
+   export const registry: Template[] = [dapp1 as Template, dapp2 as Template];
    ```
 3. Reload the extension. New events appear in the background console as
    `[maru swap] …` or `[maru bridge] …`.
@@ -180,3 +193,73 @@ See `src/templates/jumper.json` for the full template.
 When working out the field paths, the easiest workflow is to capture a real
 request/response (e.g. with the network panel or `curl`), then iterate on the
 template against that fixture.
+
+## Ethereum (JSON-RPC) templates
+
+Set `match.source` to `"ethereum"` to match calls a dapp makes to the
+wallet-injected provider (`window.ethereum.request({ method, params })`) — so
+this catches MetaMask, Rabby, Coinbase Wallet, Frame, and any other EIP-1193
+or EIP-6963 provider, since the patch is on the dapp side.
+
+What the interceptor sees is "what the dapp asks the wallet"; the wallet's
+own RPC traffic to its node provider runs in the wallet extension's context
+and is invisible from here.
+
+### ABI decoding
+
+For `eth_sendTransaction` and `eth_call`, the interesting payload is
+ABI-encoded in `params[0].data`. To work with it as named arguments, give
+the template a `to` filter (the contract you expect, scoping the selector
+collision space) plus `abi` — an array of human-readable function signatures.
+The engine decodes against the matching selector and binds the named
+arguments under `$decoded`:
+
+```json
+{
+  "id": "uniswap-v2-swapExactTokensForTokens",
+  "name": "Uniswap V2 swapExactTokensForTokens",
+  "schema": "swap",
+  "match": {
+    "source": "ethereum",
+    "domains": ["app.uniswap.org"],
+    "method": "eth_sendTransaction",
+    "to": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    "abi": [
+      "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)"
+    ]
+  },
+  "extract": {
+    "static": {
+      "chainIn": 1,
+      "chainOut": 1,
+      "provider": "Uniswap V2"
+    },
+    "fields": {
+      "tokenIn":      "$decoded.path[0]",
+      "tokenOut":     "$decoded.path[-1]",
+      "amountIn":     "$decoded.amountIn",
+      "amountOut":    "$decoded.amountOutMin",
+      "amountOutMin": "$decoded.amountOutMin",
+      "toAddress":    "$decoded.to",
+      "fromAddress":  "$params[0].from"
+    }
+  }
+}
+```
+
+Notes:
+
+- The `to` filter is **case-insensitive** and required in practice — function
+  selectors are 4 bytes and collide across contracts, so without scoping you
+  risk decoding bytes from an unrelated contract that happens to start with
+  the same selector.
+- The `chainId` of the call isn't visible from the EIP-1193 frame, so
+  `chainIn`/`chainOut` come from `static` and are pinned to whatever chain
+  the contract `to` lives on. A multi-chain protocol needs one template per
+  chain (or per router address).
+- `bigint` outputs from viem are stringified losslessly when assigned to
+  string fields (`amountIn`, etc.) and `Number()`-coerced for `chainIn`/
+  `chainOut`.
+- ABIs are parsed once per JSON import (memoized by reference), not per
+  call — adding ABI-using templates is essentially free at runtime.
+- Live example: `src/templates/uniswap-v2.json`.

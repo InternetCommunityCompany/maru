@@ -1,5 +1,6 @@
 import type { Template } from "@/template-engine/types";
 import jumper from "./jumper.json";
+import uniswapV2 from "./uniswap-v2.json";
 
 /**
  * The full registry of dapp templates shipped with the extension.
@@ -9,4 +10,7 @@ import jumper from "./jumper.json";
  * collisions are unusual. Add a new dapp by importing its JSON and pushing
  * it onto this array.
  */
-export const registry: Template[] = [jumper as Template];
+export const registry: Template[] = [
+  jumper as Template,
+  uniswapV2 as Template,
+];

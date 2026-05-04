@@ -1,0 +1,30 @@
+{
+  "id": "uniswap-v2-swapExactTokensForTokens",
+  "name": "Uniswap V2 swapExactTokensForTokens",
+  "schema": "swap",
+  "match": {
+    "source": "ethereum",
+    "domains": ["app.uniswap.org"],
+    "method": "eth_sendTransaction",
+    "to": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    "abi": [
+      "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)"
+    ]
+  },
+  "extract": {
+    "static": {
+      "chainIn": 1,
+      "chainOut": 1,
+      "provider": "Uniswap V2"
+    },
+    "fields": {
+      "tokenIn": "$decoded.path[0]",
+      "tokenOut": "$decoded.path[-1]",
+      "amountIn": "$decoded.amountIn",
+      "amountOut": "$decoded.amountOutMin",
+      "amountOutMin": "$decoded.amountOutMin",
+      "toAddress": "$decoded.to",
+      "fromAddress": "$params[0].from"
+    }
+  }
+}

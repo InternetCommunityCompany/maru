@@ -1,18 +1,29 @@
 import type { InterceptedEvent } from "@/interceptors/types";
-import { tryParseJson } from "./try-parse-json";
 import type { EvalContext } from "./types";
+import { tryParseJson } from "./try-parse-json";
 
 /**
- * Builds the data scope for a template against an HTTP-source event.
+ * Builds the data scope for a template against any `InterceptedEvent`.
  *
- * Decodes both bodies as JSON (silently dropping non-JSON), exposes URL
- * components (`host`, `path`, `full`, `search`), and the HTTP method.
- * Returns `null` if the URL is malformed (which kills template matching for
- * this event).
+ * For fetch/xhr events: decodes both bodies as JSON (silently dropping
+ * non-JSON), exposes URL components and the HTTP method. Returns `null` if
+ * the URL is malformed.
+ *
+ * For ethereum events: binds `params`, `result`, and the RPC method name.
+ * URL is `undefined` since EIP-1193 calls have no transport URL. Never
+ * returns `null` for ethereum events.
  */
 export const buildEvalContext = (
-  event: Extract<InterceptedEvent, { source: "fetch" | "xhr" }>,
+  event: InterceptedEvent,
 ): EvalContext | null => {
+  if (event.source === "ethereum") {
+    return {
+      params: event.params,
+      result: event.result,
+      method: event.method,
+    };
+  }
+
   let url: URL;
   try {
     url = new URL(event.url);
