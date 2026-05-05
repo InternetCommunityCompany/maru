@@ -106,7 +106,7 @@ The bound sources depend on the interceptor source of the matched event:
 |------------|-----------|----------|-------|
 | `$request` | ✓         |          | `JSON.parse(requestBody)` (or `undefined` if not JSON) |
 | `$response`| ✓         |          | `JSON.parse(responseBody)` (or `undefined` if not JSON) |
-| `$url`     | ✓         |          | `{ host, path, full, search: { [k]: string } }` |
+| `$url`     | ✓         |          | `{ host, path, segments: string[], full, search: { [k]: string } }` — `segments` is the path split on `/` with empty parts removed (`/quote/v7/1` → `["quote", "v7", "1"]`), useful for REST-style APIs that put resource ids in the path |
 | `$method`  | ✓         | ✓        | HTTP verb (fetch/xhr) or RPC method name (ethereum) |
 | `$params`  |           | ✓        | the JSON-RPC params (typically an array) |
 | `$result`  |           | ✓        | the JSON-RPC result |
@@ -153,6 +153,13 @@ dapp's own labelling.
 path that resolves to `null`/`undefined` simply omits the field — and if it's
 a required one, the event is dropped entirely (no partial swaps).
 
+`tokenIn` and `tokenOut` are additionally **normalized for native-asset
+sentinels**: `0xEeee…eEEeE` (1inch / OKX-style), `"NATIVE"`, `"ETH"`,
+`"BNB"`, `"MATIC"`, `"AVAX"`, `"FTM"`, `"CELO"`, `"xDai"` — all rewrite
+(case-insensitively) to the canonical zero address
+`0x0000000000000000000000000000000000000000`. ERC-20 addresses pass through
+with their original casing preserved.
+
 The full type lives in `src/template-engine/types.ts` as `SwapEvent`.
 
 ## Example: Jumper
@@ -178,6 +185,24 @@ producing one `SwapEvent` per quote:
 ```
 
 See `src/templates/jumper.json` for the full template.
+
+## Heuristic fallback
+
+When no template matches a fetch/XHR event, the engine falls through to a
+**heuristic matcher** in `src/heuristic/`. It walks a curated alias list
+(`HEURISTIC_ALIASES`) against parsed request/response bodies and emits a
+`SwapEvent` only when *every* required field resolves to a value that
+passes a per-field shape check (address regex, non-zero digit string,
+positive integer). Heuristic-sourced events use `templateId: "heuristic"`
+and have no `provider`, so they're easy to tell apart in logs.
+
+Strict gates: source must be fetch/XHR, method must be POST, status must
+be 2xx. Ethereum events stay template-only — decoding bytes blindly without
+an ABI is too risky. If you hit a dapp the heuristic doesn't catch, write a
+template; if you hit one it's catching wrong, add a more specific template
+(templates win) or extend the alias lists. The aliases live in one file
+(`src/heuristic/heuristic-aliases.ts`) so adding a new key is a one-line
+change.
 
 ## Adding a new dapp
 

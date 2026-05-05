@@ -1,0 +1,23 @@
+{
+  "id": "sushi-api",
+  "name": "Sushi API",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://api\\.sushi\\.com/quote/v\\d+/\\d+(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "Sushi"
+    },
+    "fields": {
+      "chainIn": "$url.segments[2]",
+      "chainOut": "$url.segments[2]",
+      "tokenIn": "$url.search.tokenIn",
+      "tokenOut": "$url.search.tokenOut",
+      "amountIn": "$url.search.amount",
+      "amountOut": "$response.assumedAmountOut"
+    }
+  }
+}

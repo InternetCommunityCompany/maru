@@ -1,0 +1,23 @@
+{
+  "id": "sushi-cross-chain",
+  "name": "Sushi Cross-chain",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://www\\.sushi\\.com/api/cross-chain/routes(\\?|$)"
+  },
+  "extract": {
+    "iterate": "$response.routes",
+    "fields": {
+      "chainIn": "$item.fromChainId",
+      "chainOut": "$item.toChainId",
+      "tokenIn": "$item.fromToken.address",
+      "tokenOut": "$item.toToken.address",
+      "amountIn": "$item.fromAmount",
+      "amountOut": "$item.toAmount",
+      "amountOutMin": "$item.toAmountMin",
+      "provider": "$item.step.toolDetails.name"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import type { InterceptedEvent } from "@/interceptors/types";
 import { evaluate } from "./evaluate";
+import { normalizeTokenAddress } from "./normalize-token-address";
 import type { EvalContext, SwapEvent, Template } from "./types";
 
 const REQUIRED_FIELDS = [
@@ -13,9 +14,9 @@ const REQUIRED_FIELDS = [
 
 const NUMBER_FIELDS = new Set<string>(["chainIn", "chainOut"]);
 
+const TOKEN_FIELDS = new Set<string>(["tokenIn", "tokenOut"]);
+
 const STRING_FIELDS = new Set<string>([
-  "tokenIn",
-  "tokenOut",
   "amountIn",
   "amountOut",
   "amountOutMin",
@@ -26,6 +27,7 @@ const STRING_FIELDS = new Set<string>([
 
 const coerceField = (key: string, value: unknown): unknown => {
   if (value == null) return undefined;
+  if (TOKEN_FIELDS.has(key)) return normalizeTokenAddress(value) ?? undefined;
   if (NUMBER_FIELDS.has(key)) {
     if (typeof value === "bigint") return Number(value);
     const n = typeof value === "number" ? value : parseInt(String(value), 10);

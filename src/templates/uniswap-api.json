@@ -1,0 +1,26 @@
+{
+  "id": "uniswap-api",
+  "name": "Uniswap API",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "POST",
+    "urlPattern": "^https://[a-z0-9.-]+\\.uniswap\\.org/v\\d+/swap(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "Uniswap"
+    },
+    "fields": {
+      "chainIn": "$request.quote.chainId",
+      "chainOut": "$request.quote.chainId",
+      "tokenIn": "$request.quote.input.token",
+      "tokenOut": "$request.quote.output.token",
+      "amountIn": "$request.quote.input.amount",
+      "amountOut": "$request.quote.output.amount",
+      "amountOutMin": "$request.quote.aggregatedOutputs[0].minAmount",
+      "fromAddress": "$request.quote.swapper",
+      "toAddress": "$request.quote.output.recipient"
+    }
+  }
+}

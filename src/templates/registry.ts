@@ -1,5 +1,8 @@
 import type { Template } from "@/template-engine/types";
 import jumper from "./jumper.json";
+import sushiApi from "./sushi-api.json";
+import sushiCrossChain from "./sushi-cross-chain.json";
+import uniswapApi from "./uniswap-api.json";
 import uniswapV2 from "./uniswap-v2.json";
 
 /**
@@ -12,5 +15,8 @@ import uniswapV2 from "./uniswap-v2.json";
  */
 export const registry: Template[] = [
   jumper as Template,
+  sushiApi as Template,
+  sushiCrossChain as Template,
+  uniswapApi as Template,
   uniswapV2 as Template,
 ];

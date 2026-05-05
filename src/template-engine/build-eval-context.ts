@@ -34,10 +34,17 @@ export const buildEvalContext = (
   url.searchParams.forEach((v, k) => {
     search[k] = v;
   });
+  const segments = url.pathname.split("/").filter(Boolean);
   return {
     request: tryParseJson(event.requestBody),
     response: tryParseJson(event.responseBody),
-    url: { host: url.host, path: url.pathname, full: event.url, search },
+    url: {
+      host: url.host,
+      path: url.pathname,
+      segments,
+      full: event.url,
+      search,
+    },
     method: event.method,
   };
 };

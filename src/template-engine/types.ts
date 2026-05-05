@@ -55,6 +55,8 @@ export type EvalContext = {
   url?: {
     host: string;
     path: string;
+    /** Path split on `/` with empty parts removed: `/quote/v7/1` → `["quote", "v7", "1"]`. */
+    segments: string[];
     full: string;
     search: Record<string, string>;
   };
