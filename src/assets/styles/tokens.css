@@ -5,12 +5,11 @@
    soft rounded body.
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap");
-
-/* The Bagel Fat One @font-face is registered at runtime via
-   `installWordmarkFont()` so that the source URL works across both
-   extension pages and content-script shadow roots without inlining the
-   font as a data URL. */
+/* All @font-face rules (Bagel Fat One, Nunito, JetBrains Mono) are
+   registered at runtime by `installFonts()` so URLs resolve against the
+   extension origin from both extension pages and content-script shadow
+   roots, and the (>2 MB) font binaries don't get base64-inlined into
+   the bundled CSS. */
 
 :root,
 :host {
@@ -33,6 +32,7 @@
   --green-dim: #2a5b32;
 
   --gold: #e8b547;
+  --gold-rgb: 232 181 71;
   --gold-soft: #fbecc5;
   --gold-dim: #c68f26;
 
@@ -70,6 +70,10 @@
   --r-3: 12px;
   --r-4: 16px;
   --r-pill: 999px;
+  --r-circle: 50%;
+
+  /* Layering */
+  --z-overlay: 2147483640;
 
   /* Shadows */
   --sh-pixel-1: 2px 2px 0 var(--border-strong);
@@ -104,6 +108,15 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .pixelated {

@@ -1,3 +1,4 @@
+import { DEMO_HISTORY, DEMO_LIFETIME } from "@/ui/demo-data";
 import { Maru } from "@/ui/mascot/Maru";
 import { PanelClose } from "./PanelClose";
 
@@ -6,25 +7,6 @@ export interface HistoryProps {
   /** Close handler. Renders the × button when provided. */
   onClose?: () => void;
 }
-
-interface HistoryRow {
-  pair: string;
-  when: string;
-  via: string;
-  saved: string;
-  pct: string;
-}
-
-const DEMO_HISTORY: HistoryRow[] = [
-  { pair: "USDC → ETH", when: "2h ago", via: "1inch", saved: "$10.18", pct: "+0.32%" },
-  { pair: "ETH → ARB", when: "yesterday", via: "Stargate", saved: "$4.62", pct: "+0.46%" },
-  { pair: "DAI → USDC", when: "3 days ago", via: "CowSwap", saved: "$1.04", pct: "+0.10%" },
-  { pair: "USDC → SOL", when: "5 days ago", via: "Mayan", saved: "$22.40", pct: "+0.89%" },
-  { pair: "WETH → ETH", when: "1 week ago", via: "Paraswap", saved: "$0.81", pct: "+0.04%" },
-  { pair: "MATIC → USDC", when: "1 week ago", via: "Odos", saved: "$3.21", pct: "+0.16%" },
-  { pair: "USDC → ETH", when: "2 weeks ago", via: "1inch", saved: "$8.40", pct: "+0.28%" },
-  { pair: "ARB → ETH", when: "3 weeks ago", via: "Across", saved: "$15.20", pct: "+0.51%" },
-];
 
 /**
  * History panel. Lifetime hero strip across the top with avg/best/streak
@@ -43,20 +25,22 @@ export function History({ onClose }: HistoryProps) {
       </div>
       <div className="hist-hero">
         <div>
-          <div className="hist-hero-value">$247.80</div>
-          <div className="hist-hero-label">Lifetime saved across 23 swaps</div>
+          <div className="hist-hero-value">{DEMO_LIFETIME.total}</div>
+          <div className="hist-hero-label">
+            Lifetime saved across {DEMO_LIFETIME.swaps} swaps
+          </div>
         </div>
         <div className="hist-hero-grid">
           <div>
-            <div className="hist-hero-grid-value">$10.77</div>
+            <div className="hist-hero-grid-value">{DEMO_LIFETIME.avgPerSwap}</div>
             <div className="hist-hero-grid-label">Avg / swap</div>
           </div>
           <div>
-            <div className="hist-hero-grid-value">$22.40</div>
+            <div className="hist-hero-grid-value">{DEMO_LIFETIME.bestSave}</div>
             <div className="hist-hero-grid-label">Best save</div>
           </div>
           <div>
-            <div className="hist-hero-grid-value">68d</div>
+            <div className="hist-hero-grid-value">{DEMO_LIFETIME.streak}</div>
             <div className="hist-hero-grid-label">Streak</div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { normaliseSite } from "@/storage/excluded-sites";
+import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { useExcludedSites } from "@/storage/use-excluded-sites";
 
 /** Props for the {@link ExcludedSites} settings section. */
@@ -18,7 +18,7 @@ export function ExcludedSites({ currentSite }: ExcludedSitesProps) {
   const [input, setInput] = useState("");
 
   const handleAdd = () => {
-    const next = normaliseSite(input);
+    const next = canonicaliseHost(input);
     if (!next) return;
     add(next);
     setInput("");

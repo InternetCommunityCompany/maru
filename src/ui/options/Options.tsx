@@ -11,6 +11,12 @@ function readPanel(): Panel {
 /**
  * Options-page root. Renders either the Settings or History panel based on
  * `location.hash`. The popup deep-links here via `#settings` / `#history`.
+ *
+ * @remarks
+ * No close handler is threaded through — the page lives in its own tab,
+ * which `window.close()` can't dismiss when opened by `tabs.create`. The
+ * panels' `onClose` prop is reserved for future modal usage inside the
+ * overlay shadow root.
  */
 export function Options() {
   const [panel, setPanel] = useState<Panel>(readPanel);
@@ -21,11 +27,9 @@ export function Options() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  const onClose = () => window.close();
-
   return (
     <div className="options-shell">
-      {panel === "history" ? <History onClose={onClose} /> : <Settings onClose={onClose} />}
+      {panel === "history" ? <History /> : <Settings />}
     </div>
   );
 }

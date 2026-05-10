@@ -1,4 +1,6 @@
 import { Maru } from "@/ui/mascot/Maru";
+import type { MaruState } from "@/ui/mascot/types";
+import type { ReactNode } from "react";
 
 /** The compact pill variants surfaced from the overlay state machine. */
 export type PillVariant = "scanning" | "all-good" | "working";
@@ -10,46 +12,55 @@ export interface PillProps {
   onClick?: () => void;
 }
 
+interface VariantConfig {
+  className: string;
+  mascot: MaruState;
+  body: ReactNode;
+}
+
+const VARIANTS: Record<PillVariant, VariantConfig> = {
+  scanning: {
+    className: "ol-pill scanning",
+    mascot: "searching",
+    body: (
+      <>
+        Checking 7 sources
+        <span className="dots">
+          <span />
+          <span />
+          <span />
+        </span>
+      </>
+    ),
+  },
+  "all-good": {
+    className: "ol-pill good",
+    mascot: "thumbs-up",
+    body: (
+      <>
+        You&apos;ve got the best rate <span className="check">✓</span>
+      </>
+    ),
+  },
+  working: {
+    className: "ol-pill working",
+    mascot: "searching",
+    body: <>Working… don&apos;t refresh</>,
+  },
+};
+
 /**
  * Compact pill used for quiet overlay states (scanning, best-rate, working).
  * Three variants share layout but differ in mascot, copy, and animation.
  */
 export function Pill({ variant, onClick }: PillProps) {
-  if (variant === "scanning") {
-    return (
-      <button className="ol-pill scanning" onClick={onClick}>
-        <span className="ol-pill-maru">
-          <Maru state="searching" size={22} />
-        </span>
-        <span className="ol-pill-text">
-          Checking 7 sources
-          <span className="dots">
-            <span />
-            <span />
-            <span />
-          </span>
-        </span>
-      </button>
-    );
-  }
-  if (variant === "all-good") {
-    return (
-      <button className="ol-pill good" onClick={onClick}>
-        <span className="ol-pill-maru">
-          <Maru state="thumbs-up" size={22} />
-        </span>
-        <span className="ol-pill-text">
-          You&apos;ve got the best rate <span className="check">✓</span>
-        </span>
-      </button>
-    );
-  }
+  const config = VARIANTS[variant];
   return (
-    <button className="ol-pill working" onClick={onClick}>
+    <button className={config.className} onClick={onClick}>
       <span className="ol-pill-maru">
-        <Maru state="searching" size={22} />
+        <Maru state={config.mascot} size={22} />
       </span>
-      <span className="ol-pill-text">Working… don&apos;t refresh</span>
+      <span className="ol-pill-text">{config.body}</span>
     </button>
   );
 }

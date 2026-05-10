@@ -26,10 +26,10 @@ export function PopupHeader({ mascot, onOpenSettings, onClose }: PopupHeaderProp
         </div>
       </div>
       <div className="popup-actions">
-        <button title="Settings" onClick={onOpenSettings}>
+        <button className="popup-action-btn" title="Settings" onClick={onOpenSettings}>
           ⚙
         </button>
-        <button title="Close" onClick={onClose}>
+        <button className="popup-action-btn" title="Close" onClick={onClose}>
           ×
         </button>
       </div>

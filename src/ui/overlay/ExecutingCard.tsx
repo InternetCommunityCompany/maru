@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { cx } from "@/ui/cx";
 import type { SwapMode } from "./types";
 import { Wordmark } from "./Wordmark";
 
@@ -24,6 +25,14 @@ export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProp
   const labels = mode === "bridge" ? BRIDGE_STEPS : SWAP_STEPS;
   const [step, setStep] = useState(0);
 
+  // Re-rendering parents typically pass a fresh `onComplete` arrow each
+  // render; stash the latest one in a ref so the completion timer doesn't
+  // tear down and re-arm on every keystroke.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
   useEffect(() => {
     if (step >= labels.length) return;
     const timer = setTimeout(() => {
@@ -33,11 +42,10 @@ export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProp
   }, [step, labels.length]);
 
   useEffect(() => {
-    if (step >= labels.length && onComplete) {
-      const timer = setTimeout(onComplete, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [step, labels.length, onComplete]);
+    if (step < labels.length) return;
+    const timer = setTimeout(() => onCompleteRef.current?.(), 600);
+    return () => clearTimeout(timer);
+  }, [step, labels.length]);
 
   return (
     <div className="overlay-card big">
@@ -53,11 +61,11 @@ export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProp
       </div>
       <div className="ol-steps">
         {labels.map((label, i) => {
-          const status = i < step ? "done" : i === step ? "active" : "";
+          const status = i < step ? "done" : i === step ? "active" : undefined;
           return (
             <Fragment key={label}>
-              {i > 0 && <div className={"ol-step-line" + (i <= step ? " done" : "")} />}
-              <div className={"ol-step " + status}>
+              {i > 0 && <div className={cx("ol-step-line", i <= step && "done")} />}
+              <div className={cx("ol-step", status)}>
                 <div className="ol-step-dot">{i < step ? "✓" : i + 1}</div>
                 <div className="ol-step-label">{label}</div>
               </div>

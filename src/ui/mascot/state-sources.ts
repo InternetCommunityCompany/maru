@@ -23,6 +23,3 @@ export const MARU_STATE_SOURCES: Record<MaruState, string> = {
   "finding-money": resolveAssetUrl(findingMoneyUrl),
   dancing: resolveAssetUrl(dancingUrl),
 };
-
-/** Native pixel ratio of every Maru sprite (141 wide × 77 tall). */
-export const MARU_SOURCE_RATIO = 141 / 77;

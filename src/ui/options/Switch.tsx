@@ -1,3 +1,5 @@
+import { cx } from "@/ui/cx";
+
 /** Props for the {@link Switch} toggle. */
 export interface SwitchProps {
   /** Whether the switch is currently on. */
@@ -19,7 +21,7 @@ export function Switch({ checked, onChange, label }: SwitchProps) {
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      className={"switch " + (checked ? "on" : "")}
+      className={cx("switch", checked && "on")}
       onClick={() => onChange(!checked)}
     />
   );

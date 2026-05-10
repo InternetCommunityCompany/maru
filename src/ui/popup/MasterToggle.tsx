@@ -1,3 +1,5 @@
+import { cx } from "@/ui/cx";
+
 /** Props for the {@link MasterToggle} component. */
 export interface MasterToggleProps {
   /** Hostname of the dapp the popup is currently anchored to. */
@@ -28,7 +30,7 @@ export function MasterToggle({ site, enabled, onToggle }: MasterToggleProps) {
       </div>
       <button
         type="button"
-        className={"popup-toggle " + (enabled ? "on" : "off")}
+        className={cx("popup-toggle", enabled ? "on" : "off")}
         onClick={() => onToggle(!enabled)}
         aria-pressed={enabled}
         aria-label={`MARU ${enabled ? "on" : "paused"} for ${site}`}

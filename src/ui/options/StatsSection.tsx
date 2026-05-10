@@ -1,16 +1,4 @@
-interface Stat {
-  v: string;
-  l: string;
-}
-
-const DEMO_STATS: Stat[] = [
-  { v: "$247.80", l: "Lifetime saved" },
-  { v: "23", l: "Swaps optimized" },
-  { v: "$10.77", l: "Avg per swap" },
-  { v: "$22.40", l: "Best save" },
-  { v: "68d", l: "Active streak" },
-  { v: "0.31%", l: "Avg improvement" },
-];
+import { DEMO_STATS } from "@/ui/demo-data";
 
 /**
  * Six-card grid of lifetime stats shown at the bottom of the settings page.
@@ -21,10 +9,10 @@ export function StatsSection() {
     <div className="settings-section">
       <div className="section-heading">Your stats</div>
       <div className="stats-grid">
-        {DEMO_STATS.map((s) => (
-          <div key={s.l} className="stat-card">
-            <div className="stat-value">{s.v}</div>
-            <div className="stat-label">{s.l}</div>
+        {DEMO_STATS.map((stat) => (
+          <div key={stat.label} className="stat-card">
+            <div className="stat-value">{stat.value}</div>
+            <div className="stat-label">{stat.label}</div>
           </div>
         ))}
       </div>

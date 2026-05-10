@@ -1,3 +1,4 @@
+import { cx } from "@/ui/cx";
 import { Maru } from "@/ui/mascot/Maru";
 
 /** Props for the {@link Wordmark} brand mark used inside overlay headers. */
@@ -12,7 +13,7 @@ export interface WordmarkProps {
  */
 export function Wordmark({ small }: WordmarkProps) {
   return (
-    <div className={"ol-wordmark" + (small ? " sm" : "")}>
+    <div className={cx("ol-wordmark", small && "sm")}>
       <Maru state="idle" size={small ? 24 : 32} />
       <span className="ol-wordmark-text">MARU</span>
     </div>

@@ -1,4 +1,5 @@
 import { useExcludedSites } from "@/storage/use-excluded-sites";
+import { DEMO_LIFETIME } from "@/ui/demo-data";
 import type { MaruState } from "@/ui/mascot/types";
 import { LifetimeSavings } from "./LifetimeSavings";
 import { MasterToggle } from "./MasterToggle";
@@ -18,11 +19,15 @@ const FALLBACK_SITE = "this site";
  * Settings/history are deeper than the popup is wide, so the footer links
  * open the dedicated options page in a new tab rather than swapping in
  * sub-views.
+ *
+ * The master toggle is held back from the first render until the storage
+ * read resolves — otherwise the switch flashes on the wrong side for a
+ * frame on every popup open.
  */
 export function Popup() {
   const activeHost = useActiveSite();
   const site = activeHost ?? FALLBACK_SITE;
-  const { sites: excluded, setEnabled } = useExcludedSites();
+  const { sites: excluded, loaded, setEnabled } = useExcludedSites();
 
   const enabled = activeHost ? !excluded.includes(activeHost) : false;
   const mascot: MaruState = enabled ? "thumbs-up" : "yawning";
@@ -43,12 +48,18 @@ export function Popup() {
         onOpenSettings={() => openPanel("settings")}
         onClose={closePopup}
       />
-      <MasterToggle
-        site={site}
-        enabled={enabled}
-        onToggle={(next) => activeHost && setEnabled(activeHost, next)}
+      {loaded && (
+        <MasterToggle
+          site={site}
+          enabled={enabled}
+          onToggle={(next) => activeHost && setEnabled(activeHost, next)}
+        />
+      )}
+      <LifetimeSavings
+        total={DEMO_LIFETIME.total}
+        swaps={DEMO_LIFETIME.swaps}
+        streak={DEMO_LIFETIME.streak}
       />
-      <LifetimeSavings total="$247.80" swaps={23} streak="68d" />
       <PopupFooter
         onOpenHistory={() => openPanel("history")}
         onOpenSettings={() => openPanel("settings")}

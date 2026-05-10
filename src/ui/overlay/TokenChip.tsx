@@ -1,3 +1,4 @@
+import { cx } from "@/ui/cx";
 import type { TokenInfo } from "./tokens";
 
 /** Props for the {@link TokenChip} component. */
@@ -23,13 +24,13 @@ export function TokenChip({ token, amount, reverse, highlight }: TokenChipProps)
     </div>
   );
   const info = (
-    <div className={"ol-token-info" + (reverse ? " right" : "")}>
-      <div className={"ol-token-amount" + (highlight ? " hl" : "")}>{amount}</div>
+    <div className={cx("ol-token-info", reverse && "right")}>
+      <div className={cx("ol-token-amount", highlight && "hl")}>{amount}</div>
       <div className="ol-token-symbol">{token.sym}</div>
     </div>
   );
   return (
-    <div className={"ol-token" + (reverse ? " reverse" : "")}>
+    <div className={cx("ol-token", reverse && "reverse")}>
       {reverse ? (
         <>
           {info}

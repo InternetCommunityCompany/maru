@@ -3,7 +3,8 @@ import "@/assets/styles/overlay.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { installWordmarkFont } from "@/assets/install-wordmark-font";
+import { installFonts } from "@/assets/install-fonts";
+import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
 import { Overlay } from "@/ui/overlay/Overlay";
 
@@ -14,7 +15,7 @@ export default defineContentScript({
   async main(ctx) {
     if (await isHostExcluded()) return;
 
-    installWordmarkFont();
+    installFonts();
 
     const ui = await createShadowRootUi(ctx, {
       name: "maru-overlay",
@@ -36,8 +37,9 @@ export default defineContentScript({
 
     ui.mount();
 
+    const host = canonicaliseHost(location.hostname);
     const unwatch = excludedSites.watch((next) => {
-      if (next.includes(location.hostname)) ui.remove();
+      if (next.includes(host)) ui.remove();
     });
     ctx.onInvalidated(unwatch);
   },
@@ -45,5 +47,5 @@ export default defineContentScript({
 
 async function isHostExcluded(): Promise<boolean> {
   const list = await excludedSites.getValue();
-  return list.includes(location.hostname);
+  return list.includes(canonicaliseHost(location.hostname));
 }

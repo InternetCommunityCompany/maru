@@ -12,7 +12,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 2147483640;
+  z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -136,12 +136,12 @@
 .ol-token-icon {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--r-circle);
   border: 2px solid var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--surface);
   font-weight: 900;
   font-size: 15px;
   flex-shrink: 0;
@@ -250,7 +250,7 @@
 .ol-step-dot {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--r-circle);
   background: var(--surface-2);
   border: 2px solid var(--text-dim);
   display: flex;
@@ -264,7 +264,7 @@
 .ol-step.done .ol-step-dot {
   background: var(--green);
   border-color: var(--green-dim);
-  color: white;
+  color: var(--surface);
 }
 .ol-step.active .ol-step-dot {
   background: var(--gold);
@@ -296,10 +296,10 @@
 @keyframes pulse-ring {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(232, 181, 71, 0.6);
+    box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0.6);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(232, 181, 71, 0);
+    box-shadow: 0 0 0 6px rgb(var(--gold-rgb) / 0);
   }
 }
 .ol-tx-hash {
@@ -440,7 +440,7 @@
   width: 4px;
   height: 4px;
   background: currentColor;
-  border-radius: 50%;
+  border-radius: var(--r-circle);
   opacity: 0.4;
   animation: dot-bounce 1.2s infinite;
 }

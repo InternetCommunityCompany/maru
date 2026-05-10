@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
-import { MARU_SOURCE_RATIO, MARU_STATE_SOURCES } from "./sources";
+import { cx } from "@/ui/cx";
+import { MARU_STATE_SOURCES } from "./state-sources";
 import type { MaruState } from "./types";
+
+/** Native pixel ratio of every Maru sprite (141 wide × 77 tall). */
+const SOURCE_RATIO = 141 / 77;
 
 /** Props for the {@link Maru} mascot component. */
 export interface MaruProps {
@@ -35,7 +39,7 @@ export function Maru({
   style,
 }: MaruProps) {
   const height = size;
-  const width = Math.round(size * MARU_SOURCE_RATIO);
+  const width = Math.round(size * SOURCE_RATIO);
   const src = MARU_STATE_SOURCES[state];
   const label = alt ?? `Maru — ${state.replace("-", " ")}`;
 
@@ -46,13 +50,8 @@ export function Maru({
       width={width}
       height={height}
       draggable={false}
-      className={(className ? className + " " : "") + (pixel ? "pixelated" : "")}
-      style={{
-        display: "block",
-        userSelect: "none",
-        imageRendering: pixel ? "pixelated" : "auto",
-        ...style,
-      }}
+      className={cx(className, pixel && "pixelated")}
+      style={{ display: "block", userSelect: "none", ...style }}
     />
   );
 }

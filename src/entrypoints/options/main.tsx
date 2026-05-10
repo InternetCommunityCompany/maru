@@ -3,10 +3,10 @@ import "@/assets/styles/options.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { installWordmarkFont } from "@/assets/install-wordmark-font";
+import { installFonts } from "@/assets/install-fonts";
 import { Options } from "@/ui/options/Options";
 
-installWordmarkFont();
+installFonts();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
