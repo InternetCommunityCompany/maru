@@ -1,0 +1,497 @@
+/* ============================================================
+   MARU — Settings + History panels.
+
+   Used in two places:
+   - `options.html` (static options page, Settings only).
+   - The content-script overlay's shadow root, where Settings and
+     History open as modals on top of the dapp page.
+   ============================================================ */
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.options-shell {
+  width: 100%;
+  max-width: 640px;
+}
+
+.settings,
+.history {
+  width: 100%;
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--sh-pixel-3);
+  border-radius: var(--r-2);
+  overflow: hidden;
+}
+
+.settings-head,
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface-2);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.settings-head .options-brand,
+.history-head .options-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-head .options-wordmark,
+.history-head .options-wordmark {
+  font-family: var(--font-wordmark);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+.settings-head .options-tagline,
+.history-head .options-tagline {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.panel-close {
+  width: 32px;
+  height: 32px;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--sh-pixel-1);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    background 0.1s;
+}
+.panel-close:hover {
+  background: var(--gold-soft);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh-pixel-2);
+}
+
+.settings-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.settings-footer-version {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.settings-footer-tag {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.settings-footer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-section {
+  padding: 18px;
+  border-bottom: 2px solid var(--border);
+}
+.settings-section:last-child {
+  border-bottom: none;
+}
+.settings-section .section-heading {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.settings-section .section-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  gap: 16px;
+}
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border);
+}
+.settings-row-info {
+  flex: 1;
+}
+.settings-row-title {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text);
+}
+.settings-row-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.threshold-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.threshold-input input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 56px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  text-align: right;
+}
+
+.switch {
+  width: 36px;
+  height: 20px;
+  background: var(--text-dim);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+.switch.on {
+  background: var(--green);
+}
+.switch.on::after {
+  transform: translateX(15px);
+}
+
+/* Excluded sites list */
+.excl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.excl-empty {
+  padding: 14px;
+  background: var(--surface-2);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--r-1);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.excl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  gap: 8px;
+  box-shadow: var(--sh-pixel-1);
+}
+.excl-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+.excl-favicon {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-1);
+  background: var(--gold);
+  border: 1.5px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 11px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.excl-badge {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green-dim);
+  padding: 2px 6px;
+  background: var(--green-soft);
+  border-radius: var(--r-pill);
+}
+.excl-remove {
+  width: 28px;
+  height: 28px;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--text);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.1s,
+    background 0.1s;
+}
+.excl-remove:hover {
+  background: var(--red-soft);
+  transform: translate(-1px, -1px);
+}
+.excl-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.excl-add input {
+  flex: 1;
+  min-width: 160px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+}
+.excl-add input:focus {
+  background: var(--surface);
+}
+
+.cta {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-inverse);
+  background: var(--green);
+  border: 3px solid var(--border-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  box-shadow: var(--sh-pixel-1);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+  padding: 10px 14px;
+}
+.cta.cream {
+  background: var(--surface);
+  color: var(--text);
+}
+.cta.cta-sm {
+  padding: 8px 14px;
+  font-size: 11px;
+}
+.cta:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh-pixel-2);
+}
+.cta:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--sh-pixel-1);
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stat-card {
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  padding: 12px;
+  box-shadow: var(--sh-pixel-1);
+}
+.stat-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.stat-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* History */
+.hist-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 18px;
+  background: linear-gradient(135deg, var(--gold-soft), var(--surface));
+  border-bottom: 2px solid var(--border-strong);
+  gap: 20px;
+}
+.hist-hero-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 38px;
+  color: var(--brown-deep);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.hist-hero-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.hist-hero-grid {
+  display: flex;
+  gap: 18px;
+}
+.hist-hero-grid > div {
+  text-align: right;
+}
+.hist-hero-grid-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+.hist-hero-grid-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.hist-list {
+  padding: 0;
+}
+.hist-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.hist-row:last-child {
+  border-bottom: none;
+}
+.hist-row:hover {
+  background: var(--surface-2);
+}
+.hist-row-pair {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.hist-row-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.hist-row-right {
+  text-align: right;
+}
+.hist-row-saved {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--green-dim);
+}
+.hist-row-percent {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}

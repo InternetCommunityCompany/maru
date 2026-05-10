@@ -1,0 +1,127 @@
+/* ============================================================
+   MARU Design System — Colors & Type
+   "Warm cabin + arcade cabinet" — cream paper, walnut ink,
+   forest green, gold accent. Chunky pixel display type,
+   soft rounded body.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+/* The Bagel Fat One @font-face is registered at runtime via
+   `installWordmarkFont()` so that the source URL works across both
+   extension pages and content-script shadow roots without inlining the
+   font as a data URL. */
+
+:root,
+:host {
+  /* Surfaces (warm cream, not grey) */
+  --bg: #faf5ea;
+  --surface: #ffffff;
+  --surface-2: #f3ead8;
+  --border: #e8dfc7;
+  --border-strong: #1f1508;
+
+  /* Ink (text) */
+  --text: #1f1508;
+  --text-muted: #6b5a3e;
+  --text-dim: #a08a68;
+  --text-inverse: #faf5ea;
+
+  /* Accents */
+  --green: #3a7d44;
+  --green-soft: #c9e4cf;
+  --green-dim: #2a5b32;
+
+  --gold: #e8b547;
+  --gold-soft: #fbecc5;
+  --gold-dim: #c68f26;
+
+  --brown: #8b5a2b;
+  --brown-soft: #e8d4b8;
+  --brown-deep: #4a2c16;
+
+  --red: #c14e2c;
+  --red-soft: #f5d9cd;
+
+  /* Semantic */
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --warn: var(--gold-dim);
+  --warn-soft: var(--gold-soft);
+  --danger: var(--red);
+  --danger-soft: var(--red-soft);
+
+  /* Spacing (8px base, matches pixel grid) */
+  --s-0: 0;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* Radii (modest — too round kills pixel feel) */
+  --r-0: 0;
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-4: 16px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --sh-pixel-1: 2px 2px 0 var(--border-strong);
+  --sh-pixel-2: 4px 4px 0 var(--border-strong);
+  --sh-pixel-3: 6px 6px 0 var(--border-strong);
+
+  --sh-soft-1: 0 1px 2px rgba(31, 21, 8, 0.06), 0 1px 1px rgba(31, 21, 8, 0.04);
+  --sh-soft-2: 0 4px 12px rgba(31, 21, 8, 0.08), 0 2px 4px rgba(31, 21, 8, 0.04);
+  --sh-soft-3: 0 12px 32px rgba(31, 21, 8, 0.12), 0 4px 8px rgba(31, 21, 8, 0.06);
+
+  /* Type families */
+  --font-wordmark: "Bagel Fat One", "Nunito", system-ui, sans-serif;
+  --font-display: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Menlo", ui-monospace, monospace;
+
+  /* Type scale — body */
+  --t-xs: 11px;
+  --t-sm: 13px;
+  --t-md: 15px;
+  --t-lg: 18px;
+  --t-xl: 22px;
+
+  /* Type scale — display */
+  --t-h3: 20px;
+  --t-h2: 32px;
+  --t-h1: 56px;
+  --t-hero: 88px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}

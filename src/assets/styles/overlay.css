@@ -1,0 +1,464 @@
+/* ============================================================
+   MARU — In-page overlay (the action surface, injected via
+   content script into a Shadow DOM).
+   ============================================================ */
+
+:host {
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483640;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.overlay-card.big {
+  width: 380px;
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--sh-pixel-3);
+  border-radius: var(--r-3);
+  padding: 20px;
+  font-family: var(--font-sans);
+  animation: ol-slide-in 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.overlay-card.big.success {
+  background: var(--green-soft);
+}
+
+@keyframes ol-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ol-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ol-wordmark-text {
+  font-family: var(--font-wordmark);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+.ol-wordmark.sm .ol-wordmark-text {
+  font-size: 18px;
+}
+
+.ol-close {
+  width: 28px;
+  height: 28px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  transition:
+    background 0.1s,
+    transform 0.1s;
+}
+.ol-close:hover {
+  background: var(--gold-soft);
+}
+
+.ol-headline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--text);
+  margin-bottom: 16px;
+  text-wrap: pretty;
+}
+.ol-headline strong {
+  font-weight: 900;
+}
+.ol-headline .green {
+  color: var(--green-dim);
+  font-weight: 900;
+}
+.ol-headline .muted {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Token row */
+.ol-token-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-2);
+  margin-bottom: 16px;
+}
+.ol-token {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.ol-token.reverse {
+  justify-content: flex-end;
+}
+.ol-token-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 15px;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+}
+.ol-token-info.right {
+  text-align: right;
+}
+.ol-token-amount {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.ol-token-amount.hl {
+  color: var(--green-dim);
+}
+.ol-token-symbol {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.ol-arrow {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Action buttons — extends the .cta system pattern */
+.ol-actions {
+  display: flex;
+  gap: 8px;
+}
+.ol-actions.stacked {
+  flex-direction: column;
+  gap: 8px;
+}
+.ol-btn {
+  flex: 1;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--border-strong);
+  padding: 12px;
+  border: 3px solid var(--border-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: var(--sh-pixel-1);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    background 0.1s;
+  background: var(--surface);
+}
+.ol-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh-pixel-2);
+}
+.ol-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--sh-pixel-1);
+}
+.ol-btn.full {
+  flex: 1 1 100%;
+}
+
+.ol-btn.dismiss {
+  background: var(--surface);
+}
+.ol-btn.dismiss:hover {
+  background: var(--surface-2);
+}
+
+.ol-btn.primary {
+  background: var(--green);
+  color: var(--text-inverse);
+  border-color: var(--border-strong);
+}
+
+/* Executing steps */
+.ol-steps {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 4px;
+}
+.ol-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.ol-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.ol-step.done .ol-step-dot {
+  background: var(--green);
+  border-color: var(--green-dim);
+  color: white;
+}
+.ol-step.active .ol-step-dot {
+  background: var(--gold);
+  border-color: var(--gold-dim);
+  color: var(--text);
+  animation: pulse-ring 1.2s infinite;
+}
+.ol-step-label {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.ol-step.done .ol-step-label,
+.ol-step.active .ol-step-label {
+  color: var(--text);
+}
+.ol-step-line {
+  flex: 0 0 12px;
+  height: 2px;
+  background: var(--text-dim);
+  margin-top: 13px;
+}
+.ol-step-line.done {
+  background: var(--green);
+}
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 181, 71, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(232, 181, 71, 0);
+  }
+}
+.ol-tx-hash {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Success */
+.ol-success-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 2px solid var(--green-dim);
+  border-radius: var(--r-2);
+  margin-bottom: 14px;
+}
+.ol-success-maru {
+  flex-shrink: 0;
+}
+.ol-success-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--green-dim);
+  line-height: 1;
+}
+.ol-success-amount {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--green-dim);
+  line-height: 1;
+  margin-top: 4px;
+  letter-spacing: -0.02em;
+}
+.ol-success-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+/* Failed */
+.ol-error-box {
+  padding: 12px;
+  background: var(--red-soft);
+  border: 2px solid var(--red);
+  border-radius: var(--r-2);
+  margin-bottom: 14px;
+}
+.ol-error-label {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--red);
+}
+.ol-error-message {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+/* Compact pill (scanning / all-good / working) */
+.ol-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 6px;
+  background: var(--surface);
+  border: 3px solid var(--border-strong);
+  box-shadow: var(--sh-pixel-2);
+  border-radius: var(--r-pill);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  animation: ol-slide-in 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.ol-pill:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh-pixel-3);
+}
+.ol-pill.good {
+  background: var(--green-soft);
+}
+.ol-pill.scanning {
+  background: var(--gold-soft);
+}
+.ol-pill.working {
+  background: var(--surface-2);
+}
+.ol-pill-maru {
+  width: 36px;
+  height: 28px;
+  background: var(--gold);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ol-pill.good .ol-pill-maru {
+  background: var(--green);
+}
+.ol-pill-maru img {
+  position: absolute;
+  bottom: -2px;
+}
+.ol-pill-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ol-pill .check {
+  color: var(--green-dim);
+  font-size: 14px;
+}
+.ol-pill .dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 2px;
+}
+.ol-pill .dots span {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: dot-bounce 1.2s infinite;
+}
+.ol-pill .dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ol-pill .dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dot-bounce {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
