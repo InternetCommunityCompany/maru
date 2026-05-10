@@ -1,6 +1,6 @@
 {
-  "id": "uniswap-v2-swapExactTokensForTokens",
-  "name": "Uniswap V2 swapExactTokensForTokens",
+  "id": "uniswap-v2-router",
+  "name": "Uniswap V2 Router",
   "schema": "swap",
   "match": {
     "source": "ethereum",

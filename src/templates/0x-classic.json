@@ -1,0 +1,24 @@
+{
+  "id": "0x-classic",
+  "name": "0x Classic",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://(?:[a-z]+\\.)?api\\.0x\\.org/swap/v\\d+/quote(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "0x"
+    },
+    "fields": {
+      "chainIn": "$response.chainId",
+      "chainOut": "$response.chainId",
+      "tokenIn": "$response.sellTokenAddress",
+      "tokenOut": "$response.buyTokenAddress",
+      "amountIn": "$response.sellAmount",
+      "amountOut": "$response.buyAmount",
+      "fromAddress": "$url.search.takerAddress"
+    }
+  }
+}

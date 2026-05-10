@@ -1,0 +1,24 @@
+{
+  "id": "0x-gasless",
+  "name": "0x Gasless",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://api\\.0x\\.org/tx-relay/v\\d+/swap/quote(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "0x Gasless"
+    },
+    "fields": {
+      "chainIn": "$response.trade.eip712.domain.chainId",
+      "chainOut": "$response.trade.eip712.domain.chainId",
+      "tokenIn": "$url.search.sellToken",
+      "tokenOut": "$url.search.buyToken",
+      "amountIn": "$response.sellAmount",
+      "amountOut": "$response.buyAmount",
+      "fromAddress": "$url.search.takerAddress"
+    }
+  }
+}

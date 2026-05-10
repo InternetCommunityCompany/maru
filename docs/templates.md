@@ -160,6 +160,15 @@ sentinels**: `0xEeee…eEEeE` (1inch / OKX-style), `"NATIVE"`, `"ETH"`,
 `0x0000000000000000000000000000000000000000`. ERC-20 addresses pass through
 with their original casing preserved.
 
+`chainIn` and `chainOut` accept **string aliases as well as numbers**:
+`"ethereum"`/`"eth"` → `1`, `"polygon"`/`"matic"`/`"pol"` → `137`,
+`"arbitrum"`/`"arb"` → `42161`, etc. (see
+`src/template-engine/coerce-chain-id.ts` for the full list, which is
+case-insensitive). This means a template can pull a chain name straight
+out of a URL path or query param without per-template lookup tables —
+e.g. KyberSwap's `aggregator-api.kyberswap.com/{ethereum|polygon|…}/route/encode`
+matches every chain with one template via `chainIn: "$url.segments[0]"`.
+
 The full type lives in `src/template-engine/types.ts` as `SwapEvent`.
 
 ## Example: Jumper
@@ -203,6 +212,38 @@ template; if you hit one it's catching wrong, add a more specific template
 (templates win) or extend the alias lists. The aliases live in one file
 (`src/heuristic/heuristic-aliases.ts`) so adding a new key is a one-line
 change.
+
+## Naming convention
+
+To keep the registry navigable and IDs stable, templates follow a small
+convention.
+
+1. **File name = template `id`.** Always match exactly. The `name` field is
+   the human-readable display label (`"CoW Swap ETH-Flow"`,
+   `"1inch Fusion"`).
+2. **One template per provider → just the provider name.** No `-api`
+   suffix; "the API matcher" is the default. Examples: `jumper.json`,
+   `kyberswap.json`, `lifi.json`, `pancakeswap.json`, `paraswap.json`.
+3. **Multiple templates per provider → `{provider}-{disambiguator}`.** The
+   canonical / current endpoint gets the bare name; legacy or auxiliary
+   variants get the suffix.
+   - **Mode**: `-classic`, `-fusion`, `-fusion-plus`, `-gasless`,
+     `-cross-chain`. Used when distinct products share a provider:
+     `0x-classic` vs `0x-gasless`, `1inch-classic` vs `1inch-fusion` vs
+     `1inch-fusion-plus`, `sushi` vs `sushi-cross-chain`.
+   - **Version**: `-v5`, `-v6`. Used when an older API version still has
+     real traffic worth catching. Example: `1inch-classic-v5.json` covers
+     legacy v5.2 hosts; `1inch-classic.json` covers the current v6.1.
+   - **Host variant**: `-proxy` (last resort, when only the host differs
+     for the same product). Example: `1inch-fusion-proxy.json` matches
+     `proxy-app.1inch.com` (the host the 1inch UI happens to use); the
+     bare `1inch-fusion.json` matches `api.1inch.com` (the official
+     developer API).
+4. **Contract-based (ABI) templates → `{provider}-{contract-name}`.**
+   Examples: `cowswap-eth-flow.json`, `uniswap-v2-router.json`.
+5. **Provider names are squished to one lowercase word.** `cowswap` (not
+   `cow-swap`), `kyberswap`, `pancakeswap`, `paraswap`. Numeric prefixes
+   are fine (`0x-classic`, `1inch-fusion`).
 
 ## Adding a new dapp
 

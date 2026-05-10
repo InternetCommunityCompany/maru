@@ -1,0 +1,25 @@
+{
+  "id": "1inch-fusion-plus",
+  "name": "1inch Fusion+",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": ["GET", "POST"],
+    "urlPattern": "^https://api\\.1inch\\.com/fusion-plus/quoter/v[\\d.]+/quote/receive(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "1inch Fusion+"
+    },
+    "fields": {
+      "chainIn": "$url.search.srcChain",
+      "chainOut": "$url.search.dstChain",
+      "tokenIn": "$url.search.srcTokenAddress",
+      "tokenOut": "$url.search.dstTokenAddress",
+      "amountIn": "$url.search.amount",
+      "amountOut": "$response.toTokenAmount",
+      "amountOutMin": "$response.presets.fast.auctionEndAmount",
+      "fromAddress": "$url.search.walletAddress"
+    }
+  }
+}

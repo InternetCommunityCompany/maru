@@ -1,0 +1,25 @@
+{
+  "id": "bungee",
+  "name": "Bungee",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://backend\\.bungee\\.exchange/api/v\\d+/bungee/quote(\\?|$)"
+  },
+  "extract": {
+    "iterate": "$response.result.manualRoutes",
+    "fields": {
+      "chainIn": "$response.result.originChainId",
+      "chainOut": "$response.result.destinationChainId",
+      "tokenIn": "$response.result.input.token.address",
+      "tokenOut": "$item.output.token.address",
+      "amountIn": "$response.result.input.amount",
+      "amountOut": "$item.output.amount",
+      "amountOutMin": "$item.output.minAmountOut",
+      "fromAddress": "$response.result.userAddress",
+      "toAddress": "$response.result.receiverAddress",
+      "provider": "$item.routeDetails.name"
+    }
+  }
+}

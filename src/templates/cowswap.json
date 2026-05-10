@@ -1,0 +1,25 @@
+{
+  "id": "cowswap",
+  "name": "CoW Swap",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "POST",
+    "urlPattern": "^https://api\\.cow\\.fi/[a-z0-9_-]+/api/v\\d+/quote(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "CoW Swap"
+    },
+    "fields": {
+      "chainIn": "$url.segments[0]",
+      "chainOut": "$url.segments[0]",
+      "tokenIn": "$response.quote.sellToken",
+      "tokenOut": "$response.quote.buyToken",
+      "amountIn": "$response.quote.sellAmount",
+      "amountOut": "$response.quote.buyAmount",
+      "fromAddress": "$response.from",
+      "toAddress": "$response.quote.receiver"
+    }
+  }
+}

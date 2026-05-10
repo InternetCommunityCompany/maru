@@ -1,0 +1,25 @@
+{
+  "id": "kyberswap",
+  "name": "KyberSwap",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://aggregator-api\\.kyberswap\\.com/[a-z0-9-]+/route/encode(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "KyberSwap"
+    },
+    "fields": {
+      "chainIn": "$url.segments[0]",
+      "chainOut": "$url.segments[0]",
+      "tokenIn": "$url.search.tokenIn",
+      "tokenOut": "$url.search.tokenOut",
+      "amountIn": "$url.search.amountIn",
+      "amountOut": "$response.outputAmount",
+      "fromAddress": "$url.search.to",
+      "toAddress": "$url.search.to"
+    }
+  }
+}

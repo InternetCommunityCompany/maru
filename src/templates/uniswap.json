@@ -1,6 +1,6 @@
 {
-  "id": "uniswap-api",
-  "name": "Uniswap API",
+  "id": "uniswap",
+  "name": "Uniswap",
   "schema": "swap",
   "match": {
     "source": "fetch",

@@ -1,4 +1,5 @@
 import type { InterceptedEvent } from "@/interceptors/types";
+import { coerceChainId } from "./coerce-chain-id";
 import { evaluate } from "./evaluate";
 import { normalizeTokenAddress } from "./normalize-token-address";
 import type { EvalContext, SwapEvent, Template } from "./types";
@@ -28,11 +29,7 @@ const STRING_FIELDS = new Set<string>([
 const coerceField = (key: string, value: unknown): unknown => {
   if (value == null) return undefined;
   if (TOKEN_FIELDS.has(key)) return normalizeTokenAddress(value) ?? undefined;
-  if (NUMBER_FIELDS.has(key)) {
-    if (typeof value === "bigint") return Number(value);
-    const n = typeof value === "number" ? value : parseInt(String(value), 10);
-    return Number.isFinite(n) ? n : undefined;
-  }
+  if (NUMBER_FIELDS.has(key)) return coerceChainId(value) ?? undefined;
   if (STRING_FIELDS.has(key)) return String(value);
   return value;
 };

@@ -1,0 +1,24 @@
+{
+  "id": "paraswap",
+  "name": "ParaSwap",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "POST",
+    "urlPattern": "^https://apiv\\d+\\.paraswap\\.io/transactions/\\d+(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "ParaSwap"
+    },
+    "fields": {
+      "chainIn": "$request.priceRoute.network",
+      "chainOut": "$request.priceRoute.network",
+      "tokenIn": "$request.priceRoute.srcToken",
+      "tokenOut": "$request.priceRoute.destToken",
+      "amountIn": "$request.priceRoute.srcAmount",
+      "amountOut": "$request.priceRoute.destAmount",
+      "fromAddress": "$request.userAddress"
+    }
+  }
+}

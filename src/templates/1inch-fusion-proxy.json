@@ -1,0 +1,25 @@
+{
+  "id": "1inch-fusion-proxy",
+  "name": "1inch Fusion (proxy)",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://proxy-app\\.1inch\\.com/[\\w.]+/fusion/quoter/[\\w.]+/\\d+/quote/receive(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "1inch Fusion"
+    },
+    "fields": {
+      "chainIn": "$url.segments[4]",
+      "chainOut": "$url.segments[4]",
+      "tokenIn": "$url.search.fromTokenAddress",
+      "tokenOut": "$url.search.toTokenAddress",
+      "amountIn": "$response.fromTokenAmount",
+      "amountOut": "$response.toTokenAmount",
+      "amountOutMin": "$response.presets.fast.auctionEndAmount",
+      "fromAddress": "$url.search.walletAddress"
+    }
+  }
+}

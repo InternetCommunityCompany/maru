@@ -1,0 +1,23 @@
+{
+  "id": "1inch-classic",
+  "name": "1inch Classic Swap",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://api\\.1inch\\.com/swap/v[\\d.]+/\\d+/quote(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "1inch"
+    },
+    "fields": {
+      "chainIn": "$url.segments[2]",
+      "chainOut": "$url.segments[2]",
+      "tokenIn": "$url.search.src",
+      "tokenOut": "$url.search.dst",
+      "amountIn": "$url.search.amount",
+      "amountOut": "$response.dstAmount"
+    }
+  }
+}

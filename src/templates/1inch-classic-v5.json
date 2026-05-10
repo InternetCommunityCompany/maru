@@ -1,0 +1,24 @@
+{
+  "id": "1inch-classic-v5",
+  "name": "1inch Classic v5",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://[a-z0-9-]+\\.1inch\\.(?:io|dev)/v[\\d.]+/\\d+/swap(\\?|$)"
+  },
+  "extract": {
+    "static": {
+      "provider": "1inch"
+    },
+    "fields": {
+      "chainIn": "$url.segments[1]",
+      "chainOut": "$url.segments[1]",
+      "tokenIn": "$response.fromToken.address",
+      "tokenOut": "$response.toToken.address",
+      "amountIn": "$url.search.amount",
+      "amountOut": "$response.toAmount",
+      "fromAddress": "$url.search.from"
+    }
+  }
+}

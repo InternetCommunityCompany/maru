@@ -1,6 +1,6 @@
 {
-  "id": "sushi-api",
-  "name": "Sushi API",
+  "id": "sushi",
+  "name": "Sushi",
   "schema": "swap",
   "match": {
     "source": "fetch",

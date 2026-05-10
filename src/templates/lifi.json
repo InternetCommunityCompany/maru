@@ -1,0 +1,24 @@
+{
+  "id": "lifi",
+  "name": "LI.FI",
+  "schema": "swap",
+  "match": {
+    "source": "fetch",
+    "method": "GET",
+    "urlPattern": "^https://li\\.quest/v\\d+/quote(\\?|$)"
+  },
+  "extract": {
+    "fields": {
+      "chainIn": "$response.action.fromChainId",
+      "chainOut": "$response.action.toChainId",
+      "tokenIn": "$response.action.fromToken.address",
+      "tokenOut": "$response.action.toToken.address",
+      "amountIn": "$response.action.fromAmount",
+      "amountOut": "$response.estimate.toAmount",
+      "amountOutMin": "$response.estimate.toAmountMin",
+      "fromAddress": "$response.action.fromAddress",
+      "toAddress": "$response.action.toAddress",
+      "provider": "$response.toolDetails.name"
+    }
+  }
+}

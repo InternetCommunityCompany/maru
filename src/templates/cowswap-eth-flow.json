@@ -1,0 +1,32 @@
+{
+  "id": "cowswap-eth-flow",
+  "name": "CoW Swap ETH-Flow",
+  "schema": "swap",
+  "match": {
+    "source": "ethereum",
+    "method": "eth_sendTransaction",
+    "to": [
+      "0xBA3cB449bD2B4ADdDBd894d8697F5170800EAdeC",
+      "0x40A50cf069e992AA4536211B23F286eF88752187"
+    ],
+    "abi": [
+      "function createOrder((address buyToken, address receiver, uint256 sellAmount, uint256 buyAmount, bytes32 appData, uint256 feeAmount, uint32 validTo, bool partiallyFillable, int64 quoteId) order) returns (bytes32)"
+    ]
+  },
+  "extract": {
+    "static": {
+      "chainIn": 1,
+      "chainOut": 1,
+      "tokenIn": "0x0000000000000000000000000000000000000000",
+      "provider": "CoW Swap"
+    },
+    "fields": {
+      "tokenOut": "$decoded.order.buyToken",
+      "amountIn": "$decoded.order.sellAmount",
+      "amountOut": "$decoded.order.buyAmount",
+      "amountOutMin": "$decoded.order.buyAmount",
+      "toAddress": "$decoded.order.receiver",
+      "fromAddress": "$params[0].from"
+    }
+  }
+}
