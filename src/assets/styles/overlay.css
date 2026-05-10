@@ -141,7 +141,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--surface);
+  color: var(--on-accent);
   font-weight: 900;
   font-size: 15px;
   flex-shrink: 0;
@@ -264,7 +264,7 @@
 .ol-step.done .ol-step-dot {
   background: var(--green);
   border-color: var(--green-dim);
-  color: var(--surface);
+  color: var(--on-accent);
 }
 .ol-step.active .ol-step-dot {
   background: var(--gold);

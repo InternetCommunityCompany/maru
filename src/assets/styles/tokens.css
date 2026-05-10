@@ -43,6 +43,11 @@
   --red: #c14e2c;
   --red-soft: #f5d9cd;
 
+  /* Pinned across themes — foreground that always sits on a saturated
+     brand fill (token icons, toggle thumbs, success-step glyphs). The
+     surrounding chip stays branded so the foreground must not flip. */
+  --on-accent: #ffffff;
+
   /* Semantic */
   --success: var(--green);
   --success-soft: var(--green-soft);
@@ -117,6 +122,51 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* ============================================================
+   Dark mode — same "warm cabin" identity at night.
+
+   Surfaces flip to dark walnut / charred wood (warm, never blue-grey).
+   The walnut ink line flips to aged cream so the heavy borders and
+   pixel shadows stay legible. Accents (green/gold/brown/red) brighten
+   slightly so they pop on the dark surface without losing saturation.
+
+   Soft variants stay "soft *backgrounds*" — but in dark mode that
+   means a deep tinted backdrop, not a pale wash. Dim/deep variants
+   stay "strong *foregrounds*" and brighten accordingly.
+
+   Browser-driven via prefers-color-scheme; no toggle UI.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root,
+  :host {
+    --bg: #14100a;
+    --surface: #1f1810;
+    --surface-2: #2a2117;
+    --border: #3d3120;
+    --border-strong: #f0e4c8;
+
+    --text: #f0e4c8;
+    --text-muted: #b5a482;
+    --text-dim: #806d4a;
+    --text-inverse: #14100a;
+
+    --green: #5fb371;
+    --green-soft: #1f3a26;
+    --green-dim: #9adba8;
+
+    --gold: #e8b547;
+    --gold-soft: #3d2f15;
+    --gold-dim: #f0c468;
+
+    --brown: #b67d4d;
+    --brown-soft: #2a1d10;
+    --brown-deep: #f0c98a;
+
+    --red: #e07050;
+    --red-soft: #3d1d12;
+  }
 }
 
 .pixelated {
