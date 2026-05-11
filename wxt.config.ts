@@ -13,12 +13,10 @@ export default defineConfig({
     },
     web_accessible_resources: [
       {
-        // Vite hashes asset filenames — match the whole emit folder so the
-        // overlay content script can load fonts and Maru sprites from the
-        // host page context (img src, @font-face url) regardless of
-        // hash. WXT already adds the shadow-root CSS for us.
+        // Fonts and mascot sprites are emitted from `public/` at fixed paths
+        // and loaded from content scripts via `browser.runtime.getURL`.
         matches: ["<all_urls>"],
-        resources: ["assets/*"],
+        resources: ["fonts/*", "maru/*"],
       },
     ],
   },

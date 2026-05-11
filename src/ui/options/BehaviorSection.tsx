@@ -1,14 +1,14 @@
-import { useState } from "react";
+import { useSettings } from "@/storage/use-settings";
 import { Switch } from "./Switch";
+import { ThresholdInput } from "./ThresholdInput";
 
 /**
- * Behavior preferences (sound, auto-apply, savings threshold). All state is
- * local for now — wiring through to the engine comes later.
+ * Behavior preferences (sound, auto-apply, savings threshold). Backed by
+ * the persistent {@link useSettings} store so toggles survive reloads
+ * and propagate to the content-script overlay.
  */
 export function BehaviorSection() {
-  const [sound, setSound] = useState(true);
-  const [autoApply, setAutoApply] = useState(false);
-  const [threshold, setThreshold] = useState("1.00");
+  const { settings, loaded, update } = useSettings();
 
   return (
     <div className="settings-section">
@@ -20,17 +20,11 @@ export function BehaviorSection() {
             A tiny coin chime when you save more than $5.
           </div>
         </div>
-        <Switch checked={sound} onChange={setSound} label="Sound on big wins" />
-      </div>
-      <div className="settings-row">
-        <div className="settings-row-info">
-          <div className="settings-row-title">Auto-apply best rate</div>
-          <div className="settings-row-desc">
-            Skip the nudge — just use the cheapest source. You&apos;ll still confirm in
-            your wallet.
-          </div>
-        </div>
-        <Switch checked={autoApply} onChange={setAutoApply} label="Auto-apply best rate" />
+        <Switch
+          checked={settings.sound}
+          onChange={(next) => update({ sound: next })}
+          label="Sound on big wins"
+        />
       </div>
       <div className="settings-row">
         <div className="settings-row-info">
@@ -39,14 +33,12 @@ export function BehaviorSection() {
             Don&apos;t bug me unless I&apos;d save at least this much per swap.
           </div>
         </div>
-        <div className="threshold-input">
-          <span>$</span>
-          <input
-            value={threshold}
-            onChange={(event) => setThreshold(event.target.value)}
-            aria-label="Minimum savings threshold in dollars"
+        {loaded && (
+          <ThresholdInput
+            value={settings.threshold}
+            onChange={(next) => update({ threshold: next })}
           />
-        </div>
+        )}
       </div>
     </div>
   );

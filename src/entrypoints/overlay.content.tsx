@@ -1,5 +1,5 @@
-import "@/assets/styles/tokens.css";
-import "@/assets/styles/overlay.css";
+import tokensCss from "@/assets/styles/tokens.css?inline";
+import overlayCss from "@/assets/styles/overlay.css?inline";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -11,35 +11,42 @@ import { Overlay } from "@/ui/overlay/Overlay";
 export default defineContentScript({
   matches: ["<all_urls>"],
   runAt: "document_idle",
-  cssInjectionMode: "ui",
+  // We pull the CSS in via `?inline` (string constants) and inject it
+  // ourselves inside the shadow root — no auto-injection wanted.
+  cssInjectionMode: "manual",
   async main(ctx) {
     if (await isHostExcluded()) return;
 
     installFonts();
 
-    const ui = await createShadowRootUi(ctx, {
-      name: "maru-overlay",
-      position: "inline",
-      anchor: "body",
-      append: "last",
-      isolateEvents: true,
-      onMount: (container) => {
-        const root = ReactDOM.createRoot(container);
-        root.render(
-          <React.StrictMode>
-            <Overlay />
-          </React.StrictMode>,
-        );
-        return root;
-      },
-      onRemove: (root) => root?.unmount(),
-    });
+    // Plain `host > shadow > [style, mount]` — no fake <html>/<body> wrappers.
+    // Lets `.overlay`'s `position: fixed` and `z-index` work against the page
+    // without an extra positioning ancestor caught in the page's transforms.
+    const host = document.createElement("maru-overlay");
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `${tokensCss}\n${overlayCss}`;
+    shadow.appendChild(style);
+    const mount = document.createElement("div");
+    shadow.appendChild(mount);
+    document.body.appendChild(host);
 
-    ui.mount();
+    const root = ReactDOM.createRoot(mount);
+    root.render(
+      <React.StrictMode>
+        <Overlay />
+      </React.StrictMode>,
+    );
 
-    const host = canonicaliseHost(location.hostname);
+    const remove = () => {
+      root.unmount();
+      host.remove();
+    };
+    ctx.onInvalidated(remove);
+
+    const hostName = canonicaliseHost(location.hostname);
     const unwatch = excludedSites.watch((next) => {
-      if (next.includes(host)) ui.remove();
+      if (next.includes(hostName)) remove();
     });
     ctx.onInvalidated(unwatch);
   },

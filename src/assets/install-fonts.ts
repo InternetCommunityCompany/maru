@@ -1,51 +1,46 @@
-import bagelFontUrl from "@/assets/fonts/BagelFatOne-Regular.ttf";
-import jetBrainsMonoUrl from "@/assets/fonts/JetBrainsMono.ttf";
-import nunitoUrl from "@/assets/fonts/Nunito.ttf";
-import { resolveAssetUrl } from "./resolve-asset-url";
+interface FontSpec {
+  family: string;
+  path: "/fonts/BagelFatOne-Regular.ttf" | "/fonts/Nunito.ttf" | "/fonts/JetBrainsMono.ttf";
+  weight: string;
+}
 
-const STYLE_ID = "maru-fonts";
+const FONTS: readonly FontSpec[] = [
+  { family: "Bagel Fat One", path: "/fonts/BagelFatOne-Regular.ttf", weight: "400" },
+  { family: "Nunito", path: "/fonts/Nunito.ttf", weight: "100 900" },
+  { family: "JetBrains Mono", path: "/fonts/JetBrainsMono.ttf", weight: "100 800" },
+];
+
+const FLAG = "__maruFontsLoaded";
 
 /**
  * Register every MARU font face against the host document.
  *
  * @remarks
- * Defining `@font-face` directly in `tokens.css` would force Vite to
- * base64-inline the (>2 MB) ttf binaries into the bundled stylesheet for
- * content scripts — bloating the overlay payload. Instead we inject the
- * rules at runtime against `document.head` with `chrome-extension://…`
- * URLs, which works on extension pages and is inherited into shadow
- * roots (per WXT's shadow-root style isolation contract).
+ * Fonts are loaded with `fetch()` and registered through the
+ * {@link FontFace} JS API — never via `@font-face url()`. A CSS-based
+ * load would be subject to the host page's `font-src` CSP, which on
+ * strict sites (1inch, defi dashboards) blocks `chrome-extension://`
+ * URLs and breaks the overlay's wordmark. The JS API loads from raw
+ * binary data, which the extension's `fetch` privilege grants
+ * regardless of page CSP.
  *
- * Nunito and JetBrains Mono ship as variable fonts — one file covers
- * the full weight range advertised by the type scale.
+ * Fonts added to `document.fonts` are visible to descendant shadow
+ * roots, so a single registration covers every overlay surface.
  *
  * Idempotent — safe to call from every entrypoint's bootstrap.
  */
-export function installFonts(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = `
-@font-face {
-  font-family: "Bagel Fat One";
-  src: url("${resolveAssetUrl(bagelFontUrl)}") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nunito";
-  src: url("${resolveAssetUrl(nunitoUrl)}") format("truetype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "JetBrains Mono";
-  src: url("${resolveAssetUrl(jetBrainsMonoUrl)}") format("truetype");
-  font-weight: 100 800;
-  font-style: normal;
-  font-display: swap;
-}`;
-  document.head.appendChild(style);
+export async function installFonts(): Promise<void> {
+  const doc = document as Document & { [FLAG]?: boolean };
+  if (doc[FLAG]) return;
+  doc[FLAG] = true;
+
+  await Promise.all(
+    FONTS.map(async ({ family, path, weight }) => {
+      const url = browser.runtime.getURL(path);
+      const data = await (await fetch(url)).arrayBuffer();
+      const face = new FontFace(family, data, { weight, style: "normal", display: "swap" });
+      await face.load();
+      document.fonts.add(face);
+    }),
+  );
 }

@@ -5,11 +5,10 @@
    soft rounded body.
    ============================================================ */
 
-/* All @font-face rules (Bagel Fat One, Nunito, JetBrains Mono) are
-   registered at runtime by `installFonts()` so URLs resolve against the
-   extension origin from both extension pages and content-script shadow
-   roots, and the (>2 MB) font binaries don't get base64-inlined into
-   the bundled CSS. */
+/* `@font-face` rules are registered at runtime by `installFonts()` —
+   fonts ship from `public/fonts/` so they're served at fixed
+   `chrome-extension://<id>/fonts/*.ttf` paths and inherit into shadow
+   roots from the host document. */
 
 :root,
 :host {
@@ -78,12 +77,16 @@
   --r-circle: 50%;
 
   /* Layering */
-  --z-overlay: 2147483640;
+  --z-overlay: 2147483647;
 
-  /* Shadows */
-  --sh-pixel-1: 2px 2px 0 var(--border-strong);
-  --sh-pixel-2: 4px 4px 0 var(--border-strong);
-  --sh-pixel-3: 6px 6px 0 var(--border-strong);
+  /* Shadows. `--shadow-ink` is the offset-shadow colour; in light mode it's
+     the dark walnut ink, in dark mode it flips to the deep cabin background
+     so the offset reads as a real shadow underneath the card rather than a
+     bright halo on top. */
+  --shadow-ink: var(--border-strong);
+  --sh-pixel-1: 2px 2px 0 var(--shadow-ink);
+  --sh-pixel-2: 4px 4px 0 var(--shadow-ink);
+  --sh-pixel-3: 6px 6px 0 var(--shadow-ink);
 
   --sh-soft-1: 0 1px 2px rgba(31, 21, 8, 0.06), 0 1px 1px rgba(31, 21, 8, 0.04);
   --sh-soft-2: 0 4px 12px rgba(31, 21, 8, 0.08), 0 2px 4px rgba(31, 21, 8, 0.04);
@@ -143,9 +146,10 @@ body {
   :host {
     --bg: #14100a;
     --surface: #1f1810;
-    --surface-2: #2a2117;
+    --surface-2: #3a2c1a;
     --border: #3d3120;
     --border-strong: #f0e4c8;
+    --shadow-ink: var(--bg);
 
     --text: #f0e4c8;
     --text-muted: #b5a482;
