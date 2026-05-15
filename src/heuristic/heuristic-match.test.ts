@@ -69,13 +69,15 @@ describe("heuristicMatch", () => {
       expect(heuristicMatch(err, PAGE_HOST)).toBeNull();
     });
 
-    it("rejects non-POST methods", () => {
-      for (const method of ["GET", "PUT", "DELETE", "PATCH"]) {
+    it("accepts any HTTP method as long as the shape checks pass", () => {
+      // The verb isn't load-bearing — the per-field validators (address regex,
+      // non-zero amounts, positive chain id) already exclude non-swap traffic.
+      for (const method of ["GET", "POST", "PUT", "DELETE", "PATCH"]) {
         const event = fetchEvent({
           method,
           requestBody: JSON.stringify(swapBody()),
         });
-        expect(heuristicMatch(event, PAGE_HOST)).toBeNull();
+        expect(heuristicMatch(event, PAGE_HOST)?.kind).toBe("swap");
       }
     });
 

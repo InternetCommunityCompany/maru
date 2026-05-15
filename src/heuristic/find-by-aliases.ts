@@ -1,4 +1,5 @@
 const navigate = (source: unknown, path: string): unknown => {
+  if (path === "") return source;
   const parts = path.split(".");
   let cursor: unknown = source;
   for (const part of parts) {
@@ -16,17 +17,28 @@ const navigate = (source: unknown, path: string): unknown => {
  *
  * Returns `null` if no alias produces a valid value. Aliases that resolve
  * to `undefined` are skipped without invoking the validator.
+ *
+ * @param prefixes - Dot-path scopes to try in order. Defaults to `[""]` so
+ *   only the root is searched. Pass extra scopes (e.g. `["", "data",
+ *   "quote"]`) to also resolve aliases beneath common envelope keys; an
+ *   alias is matched at the earliest prefix where it both resolves and
+ *   validates, so root values beat nested ones.
  */
 export const findByAliases = <T>(
   source: unknown,
   aliases: readonly string[],
   validate: (value: unknown) => T | null,
+  prefixes: readonly string[] = [""],
 ): T | null => {
-  for (const alias of aliases) {
-    const value = navigate(source, alias);
-    if (value === undefined) continue;
-    const validated = validate(value);
-    if (validated !== null) return validated;
+  for (const prefix of prefixes) {
+    const scope = navigate(source, prefix);
+    if (scope === undefined) continue;
+    for (const alias of aliases) {
+      const value = navigate(scope, alias);
+      if (value === undefined) continue;
+      const validated = validate(value);
+      if (validated !== null) return validated;
+    }
   }
   return null;
 };

@@ -144,4 +144,66 @@ describe("findByAliases", () => {
       expect(received).toEqual([0]);
     });
   });
+
+  describe("nesting prefixes", () => {
+    it("resolves an alias beneath a non-empty prefix scope", () => {
+      const source = { quote: { sellToken: "0xabc" } };
+      expect(
+        findByAliases(source, ["sellToken"], identity<string>, ["", "quote"]),
+      ).toBe("0xabc");
+    });
+
+    it("prefers root values over values found under a later prefix", () => {
+      // Root scope is listed first in the prefix list, so its value wins
+      // even though the nested scope also resolves.
+      const source = {
+        sellToken: "root-wins",
+        quote: { sellToken: "nested" },
+      };
+      expect(
+        findByAliases(source, ["sellToken"], identity<string>, ["", "quote"]),
+      ).toBe("root-wins");
+    });
+
+    it("falls through to a later prefix when no earlier prefix resolves", () => {
+      const source = { data: { sellToken: "data-wins" } };
+      expect(
+        findByAliases(
+          source,
+          ["sellToken"],
+          identity<string>,
+          ["", "quote", "data"],
+        ),
+      ).toBe("data-wins");
+    });
+
+    it("skips a prefix whose scope is absent without failing", () => {
+      const source = { data: { sellToken: "0xabc" } };
+      expect(
+        findByAliases(
+          source,
+          ["sellToken"],
+          identity<string>,
+          ["", "quote", "data"],
+        ),
+      ).toBe("0xabc");
+    });
+
+    it("walks all aliases under one prefix before trying the next", () => {
+      // Both prefixes have the value, but `sellToken` resolves first under
+      // the `quote` prefix before the matcher tries `data` at all.
+      const source = {
+        quote: { srcToken: "from-quote" },
+        data: { sellToken: "from-data" },
+      };
+      expect(
+        findByAliases(
+          source,
+          ["sellToken", "srcToken"],
+          identity<string>,
+          ["", "quote", "data"],
+        ),
+      ).toBe("from-quote");
+    });
+  });
 });
