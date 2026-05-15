@@ -8,6 +8,13 @@ export default defineConfig({
     name: "MARU",
     description: "Best swap rates, automatically.",
     permissions: ["storage"],
+    // Hosts the background service worker is allowed to `fetch()`. Keep in
+    // sync with `BACKEND_URL` in `src/backend-url.ts` — dev points at
+    // localhost, prod at api.usemaru.com.
+    host_permissions: [
+      "https://api.usemaru.com/*",
+      "http://localhost:3000/*",
+    ],
     action: {
       default_title: "MARU",
     },
