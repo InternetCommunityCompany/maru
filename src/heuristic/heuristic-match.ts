@@ -4,6 +4,7 @@ import type { SwapEvent } from "@/template-engine/types";
 import { tryParseJson } from "@/template-engine/try-parse-json";
 import { findByAliases } from "./find-by-aliases";
 import { HEURISTIC_ALIASES } from "./heuristic-aliases";
+import { parseUrlParams } from "./parse-url-params";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const AMOUNT_RE = /^\d+$/;
@@ -26,10 +27,12 @@ const asChainId = (v: unknown): number | null => {
  * Fallback matcher for fetch/XHR events the template registry didn't catch.
  *
  * Walks a curated list of field-name aliases against the parsed request and
- * response bodies, validates each candidate against a per-field shape check
- * (address regex, non-zero digit string, positive integer), and emits a
- * `SwapEvent` only when **all** required fields resolve. Returns `null`
- * otherwise — and dropping is the common case.
+ * response bodies plus the request URL's query parameters, validates each
+ * candidate against a per-field shape check (address regex, non-zero digit
+ * string, positive integer), and emits a `SwapEvent` only when **all**
+ * required fields resolve. Returns `null` otherwise — and dropping is the
+ * common case. Bodies are checked before query parameters, so an explicit
+ * body value always wins over a URL one.
  *
  * Strict gates:
  * - Source must be `fetch` or `xhr` (ethereum is template-only, decoding
@@ -56,14 +59,17 @@ export function heuristicMatch(
 
   const req = tryParseJson(event.requestBody);
   const res = tryParseJson(event.responseBody);
-  if (req === undefined && res === undefined) return null;
+  const params = parseUrlParams(event.url);
+  const hasParams = Object.keys(params).length > 0;
+  if (req === undefined && res === undefined && !hasParams) return null;
 
   const findIn = <T>(
     aliases: readonly string[],
     validate: (v: unknown) => T | null,
   ): T | null =>
     findByAliases(req, aliases, validate) ??
-    findByAliases(res, aliases, validate);
+    findByAliases(res, aliases, validate) ??
+    findByAliases(params, aliases, validate);
 
   const tokenIn = findIn(HEURISTIC_ALIASES.tokenIn, normalizeTokenAddress);
   const tokenOut = findIn(HEURISTIC_ALIASES.tokenOut, normalizeTokenAddress);
