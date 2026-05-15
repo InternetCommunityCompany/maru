@@ -4,16 +4,20 @@ import { BackgroundAdapter } from "@/messaging/background-adapter";
 import { injectComparisonChannel } from "@/messaging/comparison-channel";
 import { provideQuoteChannel } from "@/messaging/quote-channel";
 import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
-import { ensureTokenList } from "@/token-info/ensure-token-list";
+import { ensureChainList } from "@/metadata/chain-info/ensure-chain-list";
+import { ensureTokenList } from "@/metadata/token-info/ensure-token-list";
 
 export default defineBackground(() => {
-  // Boot-time refresh of the token list — hydrates the in-memory index from
-  // `storage.local`, and re-fetches against the backend if the cache is past
-  // its TTL. Errors are swallowed inside `ensureTokenList` (the existing
-  // cache, if any, still hydrates), so this is safe to fire-and-forget.
+  // Boot-time refresh of the metadata caches — each hydrates its in-memory
+  // index from `storage.local`, and re-fetches against the backend if the
+  // cache is past its TTL. Errors are swallowed inside each helper (the
+  // existing cache, if any, still hydrates), so these are safe to
+  // fire-and-forget.
   void ensureTokenList();
+  void ensureChainList();
   browser.runtime.onInstalled.addListener(() => {
     void ensureTokenList();
+    void ensureChainList();
   });
 
   const reducer = createQuoteReducer();
