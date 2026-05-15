@@ -1,4 +1,6 @@
 import { createArbiter } from "@/arbiter/arbiter";
+import { createDomGrounding } from "@/dom-grounding";
+import { resolveTokenMeta } from "@/dom-grounding/stub-token-meta";
 import { installInterceptors } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "@/heuristic/heuristic-match";
 import { injectEventChannel } from "@/messaging/channel";
@@ -19,6 +21,25 @@ export default defineContentScript({
         void channel.emit(update).catch(() => {});
       },
     });
+
+    const wireGrounding = (): void => {
+      const grounding = createDomGrounding({ resolveMeta: resolveTokenMeta });
+      // `null` means no DOM (e.g. service worker context that mis-loaded
+      // this entrypoint). The arbiter keeps emitting at the no-grounding
+      // tier — silent failure isn't an option, see CONFIDENCE table.
+      if (grounding) arbiter.setGroundingProvider(grounding.groundCandidates);
+    };
+    if (document.readyState === "loading") {
+      // The observer needs `document.body` to attach. We run at
+      // `document_start`, so wait until parsing has produced a body before
+      // walking — the arbiter still emits at the no-grounding tier until
+      // then.
+      document.addEventListener("DOMContentLoaded", wireGrounding, {
+        once: true,
+      });
+    } else {
+      wireGrounding();
+    }
 
     installInterceptors((rawEvent) => {
       const matched = matchTemplates(rawEvent, registry);
