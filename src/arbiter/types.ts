@@ -82,20 +82,34 @@ export type QuoteSession = {
 };
 
 /**
- * The arbiter's output — what the consumer protocol child issue will pick up
- * once the channel wire is retyped to carry it directly.
+ * The arbiter's output — the wire payload carried by `EventChannel` from the
+ * MAIN-world producer to the background reducer.
  *
- * Until that child issue lands, the arbiter still emits across the existing
- * `SwapEvent`-typed channel and the wrapping metadata stays local to the
- * `injected.content.ts` adapter. The shape is defined here so the consumer
- * can import it without churn.
+ * One session per `sessionKey`. Within a session, `sequence` is monotonic;
+ * consumers (`src/quote-reducer`) replace prior state by `sessionKey` and drop
+ * any arrival whose `sequence` is not strictly greater than the stored one.
+ * The arbiter is the union owner; the channel imports this type rather than
+ * the other way around.
+ *
+ * @remarks
+ * Confidence tiers — the value the arbiter writes is one of:
+ *
+ * - `~0.3` heuristic match, no DOM grounding hit
+ * - `~0.6` template match, no DOM grounding hit
+ * - `~0.85` candidate matches a DOM-rendered amount (grounded heuristic)
+ * - `~0.95` template *and* DOM grounding agree
+ *
+ * The arbiter spine currently emits at the coarser `CONFIDENCE` tiers below;
+ * the grounded sub-tiers (0.85 / 0.95) land with the DOM grounding child
+ * issue. Consumers should treat `confidence` as a continuous `[0, 1]` value
+ * and not branch on exact constants.
  */
 export type QuoteUpdate = {
   swap: SwapEvent;
   sessionKey: SessionKey;
   /** Monotonic per-session — consumers use it to discard out-of-order replacements. */
   sequence: number;
-  /** Confidence in `[0, 1]`. See `CONFIDENCE` for the tier mapping. */
+  /** Confidence in `[0, 1]`. See the tier table on this type. */
   confidence: number;
   candidateId: string;
 };

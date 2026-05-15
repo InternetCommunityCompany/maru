@@ -15,12 +15,8 @@ export default defineContentScript({
 
     const arbiter = createArbiter({
       emit: (update) => {
-        // Channel wire is still typed as `SwapEvent` — the consumer-protocol
-        // child of MAR-14 will retype it to `QuoteUpdate`. Until then, the
-        // wrapping metadata (sequence, confidence, sessionKey) stays local
-        // to this adapter.
         // fire-and-forget — dapp must not block on the extension round-trip.
-        void channel.emit(update.swap).catch(() => {});
+        void channel.emit(update).catch(() => {});
       },
     });
 
