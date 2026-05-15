@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { QuoteUpdate } from "@/arbiter/types";
 import type { ComparisonSnapshot } from "@/comparison/types";
 import { hydrateTokenIndex } from "@/metadata/token-info/token-index";
-import type { TokenList } from "@/metadata/token-info/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { TokenList } from "@/metadata/token-info/token-index";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { snapshotToView } from "./snapshot-to-view";
 
 const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -87,7 +87,7 @@ describe("snapshotToView", () => {
 
   it("result with positive delta → better-rate card with resolved tokens", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update(),
       comparison: {
         delta: 1_000_000_000_000_000n,
@@ -111,7 +111,7 @@ describe("snapshotToView", () => {
 
   it("result with zero delta → all-good pill", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update(),
       comparison: {
         delta: 0n,
@@ -124,7 +124,7 @@ describe("snapshotToView", () => {
 
   it("result with negative delta → all-good pill (dapp's quote is better)", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update(),
       comparison: {
         delta: -100n,
@@ -137,7 +137,7 @@ describe("snapshotToView", () => {
 
   it("falls back to provider when routing is absent", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update(),
       comparison: {
         delta: 1n,
@@ -152,7 +152,7 @@ describe("snapshotToView", () => {
 
   it("preserves null token info when the address is not in the index", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update({
         swap: swap({
           tokenIn: "0x0000000000000000000000000000000000000099",
@@ -169,7 +169,7 @@ describe("snapshotToView", () => {
 
   it("cross-chain swap is rendered uniformly with same-chain (only chainIds differ)", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update({
         swap: swap({
           chainIn: 1,
@@ -200,7 +200,7 @@ describe("snapshotToView", () => {
 
   it("propagates null percentage when the dapp's amountOut was zero", () => {
     const snap: ComparisonSnapshot = {
-      status: "result",
+      status: "ok",
       update: update({ swap: swap({ amountOut: "0" }) }),
       comparison: {
         delta: 1_000_000n,

@@ -3,7 +3,7 @@ import { fakeBrowser } from "wxt/testing";
 import { ensureTokenList, TOKEN_LIST_TTL_MS } from "./ensure-token-list";
 import { lookupToken, tokenIndexSize } from "./token-index";
 import { tokenList } from "./token-list-storage";
-import type { TokenList } from "./types";
+import type { TokenList } from "./token-index";
 
 const usdc = {
   chainId: 1,

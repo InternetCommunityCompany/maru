@@ -1,4 +1,4 @@
-import type { EvalContext } from "./types";
+import type { EvalContext } from "./build-eval-context";
 
 type Token = { kind: "key"; key: string } | { kind: "index"; index: number };
 

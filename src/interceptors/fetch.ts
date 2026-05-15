@@ -1,4 +1,4 @@
-import type { InterceptedEvent } from "./types";
+import type { InterceptedEvent } from "./install-interceptors";
 import { makeIdGenerator } from "./make-id-generator";
 import { safeText } from "./safe-text";
 

@@ -1,5 +1,5 @@
 import { Maru } from "@/ui/mascot/Maru";
-import type { MaruState } from "@/ui/mascot/types";
+import type { MaruState } from "@/ui/mascot/state-sources";
 
 /** Props for the {@link PopupHeader} component. */
 export interface PopupHeaderProps {

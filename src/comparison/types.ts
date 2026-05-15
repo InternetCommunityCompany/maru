@@ -99,6 +99,10 @@ export type ComparisonResult = {
  * each variant describes the orchestrator's state for the current session,
  * not what any consumer should do with it.
  *
+ * Status names mirror the orchestrator's internal cache entry so the
+ * orchestrator→wire transform is a one-step pass-through (`ok` carries a
+ * derived `comparison`; everything else just adds `update`).
+ *
  * The `update` carried is the current best `QuoteUpdate` for the session at
  * snapshot time. Subscribers can compare across snapshots by `update.sessionKey`
  * and `update.sequence` to dedupe.
@@ -110,7 +114,7 @@ export type ComparisonSnapshot =
       update: QuoteUpdate;
     }
   | {
-      status: "result";
+      status: "ok";
       update: QuoteUpdate;
       /** Computed against `update.swap.amountOut`. `delta` may be positive, zero, or negative. */
       comparison: ComparisonResult;

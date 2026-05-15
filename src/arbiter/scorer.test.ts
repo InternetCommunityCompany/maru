@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { score } from "./scorer";
 import type { Candidate, QuoteSession } from "./types";
 

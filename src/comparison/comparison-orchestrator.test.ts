@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteUpdate } from "@/arbiter/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import {
   createComparisonOrchestrator,
   DEFAULT_SESSION_TTL_MS,
@@ -91,8 +91,8 @@ describe("comparison-orchestrator: first ingest", () => {
     await Promise.resolve();
 
     expect(sink).toHaveLength(2);
-    expect(sink[1]!.status).toBe("result");
-    if (sink[1]!.status !== "result") throw new Error("expected result");
+    expect(sink[1]!.status).toBe("ok");
+    if (sink[1]!.status !== "ok") throw new Error("expected ok");
     expect(sink[1]!.comparison.provider).toBe("uniswap");
     expect(sink[1]!.comparison.delta).toBe(10_000_000_000_000_000n);
   });
@@ -147,8 +147,8 @@ describe("comparison-orchestrator: subsequent ingest on a known session", () => 
     // No new fetch.
     expect(pending).toHaveLength(1);
     expect(sink).toHaveLength(1);
-    expect(sink[0]!.status).toBe("result");
-    if (sink[0]!.status !== "result") throw new Error("expected result");
+    expect(sink[0]!.status).toBe("ok");
+    if (sink[0]!.status !== "ok") throw new Error("expected ok");
     // dapp now 505, backend 510 → +5
     expect(sink[0]!.comparison.delta).toBe(5_000_000_000_000_000n);
   });

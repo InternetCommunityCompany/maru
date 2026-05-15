@@ -1,4 +1,17 @@
-import type { StoredTokenList } from "./types";
+import type { TokenList } from "./token-index";
+
+/**
+ * Persisted blob stored in `storage.local`.
+ *
+ * `data` is the raw backend payload kept verbatim (so a future schema
+ * version on the wire stays inspectable). `fetchedAt` is the epoch-ms
+ * timestamp of the most recent successful refresh — used by
+ * {@link ensureTokenList} to decide whether the cache is stale.
+ */
+export type StoredTokenList = {
+  data: TokenList;
+  fetchedAt: number;
+};
 
 /**
  * Persisted token-list blob, mirrored to `storage.local` so it survives a

@@ -1,4 +1,4 @@
-import type { Template } from "@/template-engine/types";
+import type { Template } from "@/template-engine/match-templates";
 import zeroXGasless from "./0x-gasless.json";
 import oneInchClassic from "./1inch-classic.json";
 import oneInchClassicV5 from "./1inch-classic-v5.json";

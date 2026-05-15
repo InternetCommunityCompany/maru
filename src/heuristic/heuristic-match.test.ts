@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { InterceptedEvent } from "@/interceptors/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "./heuristic-match";
 
 const USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";

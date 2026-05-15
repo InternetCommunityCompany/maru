@@ -1,10 +1,46 @@
-import type { InterceptedEvent } from "@/interceptors/types";
-import { buildEvalContext } from "./build-eval-context";
-import { buildSwapEvent } from "./build-swap-event";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
+import { buildEvalContext, type EvalContext } from "./build-eval-context";
+import { buildSwapEvent, type SwapEvent } from "./build-swap-event";
 import { decodeCalldata } from "./decode-calldata";
 import { evaluate } from "./evaluate";
 import { matchesDomain } from "./matches-domain";
-import type { EvalContext, SwapEvent, Template } from "./types";
+
+type Source = InterceptedEvent["source"];
+
+/**
+ * A dapp template definition: matching rules + extraction rules.
+ *
+ * The template engine evaluates `match` first as a fast reject (interceptor
+ * source, page domain, event method, URL regex). Only matched events are run
+ * through `extract`, which optionally iterates over an array (`iterate`) and
+ * pulls scalar values out via path expressions (`fields`). See
+ * `docs/templates.md` for the full schema reference.
+ */
+export type Template = {
+  id: string;
+  name: string;
+  schema: "swap";
+  match: {
+    /** Restricts which interceptor source(s) this template applies to. Omit to match any source. */
+    source?: Source | Source[];
+    /** Page hosts. Matches the page host or any subdomain of one. Omit to match any host (useful for templates keyed on a contract address rather than a specific dapp). */
+    domains?: string[];
+    /** Matches `event.method` (HTTP verb for fetch/xhr, RPC method name for ethereum). */
+    method?: string | string[];
+    /** URL regex; only meaningful for fetch/xhr. Ignored for ethereum events. */
+    urlPattern?: string;
+    /** Transaction recipient filter; only meaningful for ethereum events with `params[0].to`. Case-insensitive. */
+    to?: string | string[];
+    /** Human-readable function signatures to decode `params[0].data` against. Only meaningful for ethereum events. */
+    abi?: string[];
+  };
+  extract: {
+    iterate?: string;
+    /** Literal field values applied before path-expression `fields`. Use for values that can't come from the wire (chain ids, provider name for native protocols). */
+    static?: Record<string, unknown>;
+    fields: Record<string, string>;
+  };
+};
 
 const asArray = <T>(value: T | T[] | undefined): T[] | null =>
   value == null ? null : Array.isArray(value) ? value : [value];

@@ -1,6 +1,6 @@
-import type { InterceptedEvent } from "@/interceptors/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { normalizeTokenAddress } from "@/template-engine/normalize-token-address";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { tryParseJson } from "@/template-engine/try-parse-json";
 import { findByAliases } from "./find-by-aliases";
 import { HEURISTIC_ALIASES } from "./heuristic-aliases";

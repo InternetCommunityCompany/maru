@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Candidate } from "@/arbiter/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { createDomGrounding } from "./index";
 import type { TokenMetaResolver } from "./types";
 

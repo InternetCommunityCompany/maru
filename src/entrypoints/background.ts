@@ -1,7 +1,4 @@
-import {
-  type ComparisonOrchestrator,
-  createComparisonOrchestrator,
-} from "@/comparison/comparison-orchestrator";
+import { createComparisonOrchestrator } from "@/comparison/comparison-orchestrator";
 import { fetchBestQuote } from "@/comparison/fetch-best-quote";
 import {
   COMPARISON_PORT_NAME,
@@ -26,7 +23,12 @@ export default defineBackground(() => {
 
   const orchestrator = createComparisonOrchestrator({ fetchBestQuote });
 
-  if (import.meta.env.DEV) wireDevLogging(orchestrator);
+  if (import.meta.env.DEV) {
+    orchestrator.subscribe((snapshot) => {
+      const { swap } = snapshot.update;
+      console.log(`[maru ${swap.domain}] ${snapshot.status} seq=${snapshot.update.sequence}`);
+    });
+  }
 
   // Per-tab port wiring. Each content script opens one of two named ports;
   // the connect handler attaches the appropriate channel(s) for that tab
@@ -49,21 +51,3 @@ export default defineBackground(() => {
     port.disconnect();
   });
 });
-
-// Dev terminal log: one line per visible session change. `+` on first-seen
-// sessionKey, `~` on subsequent. Out-of-order arrivals are dropped inside
-// the orchestrator so they never reach this listener.
-function wireDevLogging(orchestrator: ComparisonOrchestrator): void {
-  const seen = new Set<string>();
-  orchestrator.subscribe((snapshot) => {
-    const { update } = snapshot;
-    const tag = seen.has(update.sessionKey) ? "~" : "+";
-    seen.add(update.sessionKey);
-    const { swap } = update;
-    console.log(
-      `[maru ${tag}${swap.type}] ${swap.domain} via ${swap.provider ?? swap.templateId}: ` +
-        `${swap.amountIn} ${swap.tokenIn} → ${swap.amountOut} ${swap.tokenOut} ` +
-        `(seq ${update.sequence}, status ${snapshot.status}, conf ${update.confidence.toFixed(2)})`,
-    );
-  });
-}

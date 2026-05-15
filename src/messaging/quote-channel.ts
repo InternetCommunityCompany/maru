@@ -1,6 +1,6 @@
 import type { QuoteUpdate } from "@/arbiter/types";
 
-const TAG = "quote" as const;
+const ENVELOPE_TAG = "quote" as const;
 
 /**
  * Port name the ISOLATED content-script relay opens to the background to
@@ -10,23 +10,25 @@ const TAG = "quote" as const;
 export const QUOTE_PORT_NAME = "maru:quote";
 
 /**
- * Wire envelope on the quote channel. Tagged so the relay and background can
- * cheaply filter foreign traffic (other extensions, page scripts) without
- * pulling in an RPC framework.
+ * Window envelope used between the MAIN-world script and the ISOLATED-world
+ * relay. The `window` event loop is shared with foreign scripts (the dapp
+ * and other extensions in MAIN), so a tag is required to filter our own
+ * traffic. Port traffic past the relay is private and carries the raw
+ * {@link QuoteUpdate}.
  */
-export type QuoteMessage = {
-  readonly __maru: typeof TAG;
+export type QuoteEnvelope = {
+  readonly __maru: typeof ENVELOPE_TAG;
   readonly update: QuoteUpdate;
 };
 
-/** Type guard for {@link QuoteMessage}. */
-export const isQuoteMessage = (data: unknown): data is QuoteMessage =>
+/** Type guard for {@link QuoteEnvelope}. */
+export const isQuoteEnvelope = (data: unknown): data is QuoteEnvelope =>
   typeof data === "object" &&
   data !== null &&
-  (data as { __maru?: unknown }).__maru === TAG;
+  (data as { __maru?: unknown }).__maru === ENVELOPE_TAG;
 
 /**
- * Post a {@link QuoteUpdate} from the MAIN-world content script. The message
+ * Emit a {@link QuoteUpdate} from the MAIN-world content script. The message
  * is delivered via `window.postMessage` with the document's origin so it
  * reaches the ISOLATED-world relay and is not visible to embedders.
  *
@@ -35,20 +37,21 @@ export const isQuoteMessage = (data: unknown): data is QuoteMessage =>
  * the port is back.
  */
 export const emitQuote = (update: QuoteUpdate): void => {
-  const message: QuoteMessage = { __maru: TAG, update };
-  window.postMessage(message, window.location.origin);
+  const envelope: QuoteEnvelope = { __maru: ENVELOPE_TAG, update };
+  window.postMessage(envelope, window.location.origin);
 };
 
 /**
  * Subscribe `handler` to {@link QuoteUpdate}s arriving on a background-side
- * `runtime.Port`. Non-quote traffic on the port is dropped silently. The
- * listener dies with the port; the caller does not need to detach manually.
+ * `runtime.Port`. The port carries raw updates — the relay strips the window
+ * envelope before forwarding — so the cast is sound. The listener dies with
+ * the port; the caller does not need to detach manually.
  */
 export const onQuote = (
   port: Browser.runtime.Port,
   handler: (update: QuoteUpdate) => void,
 ): void => {
   port.onMessage.addListener((raw: unknown) => {
-    if (isQuoteMessage(raw)) handler(raw.update);
+    handler(raw as QuoteUpdate);
   });
 };

@@ -1,4 +1,4 @@
-import type { TokenSide } from "./types";
+import type { TokenSide } from "./snapshot-to-view";
 import { TokenChip } from "./TokenChip";
 import { Wordmark } from "./Wordmark";
 

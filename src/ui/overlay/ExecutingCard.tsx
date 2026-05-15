@@ -1,7 +1,19 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { cx } from "@/ui/cx";
-import type { SwapMode } from "./types";
 import { Wordmark } from "./Wordmark";
+
+/**
+ * Whether a swap is single-chain or cross-chain. Determines the step labels
+ * and step-row count on the execution-side cards.
+ *
+ * @remarks
+ * Kept on `ExecutingCard` / `SuccessCard` where bridge vs. swap genuinely
+ * changes step labels (e.g. "Sign / Confirm" vs. "Source / Bridging"). The
+ * snapshot-driven alert card (`BetterRateCard`) no longer branches on this
+ * — cross-chain there is derived from `srcChainId !== dstChainId` and only
+ * feeds chain-icon rendering on `TokenChip`.
+ */
+export type SwapMode = "swap" | "bridge";
 
 /** Props for the {@link ExecutingCard} component. */
 export interface ExecutingCardProps {

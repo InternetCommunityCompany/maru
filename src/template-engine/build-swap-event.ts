@@ -1,8 +1,46 @@
-import type { InterceptedEvent } from "@/interceptors/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
+import type { EvalContext } from "./build-eval-context";
 import { coerceChainId } from "./coerce-chain-id";
 import { evaluate } from "./evaluate";
+import type { Template } from "./match-templates";
 import { normalizeTokenAddress } from "./normalize-token-address";
-import type { EvalContext, SwapEvent, Template } from "./types";
+
+/**
+ * A normalized swap or bridge quote extracted by a template.
+ *
+ * `type` is `"bridge"` if `chainIn !== chainOut`, otherwise `"swap"`. The
+ * required fields (`chainIn`, `chainOut`, `tokenIn`, `tokenOut`, `amountIn`,
+ * `amountOut`) are the minimum to express a rate — if any can't be resolved,
+ * the engine drops the event rather than emitting a partial. Token symbols,
+ * decimals, USD values, and gas costs are intentionally absent: consumers
+ * resolve them from on-chain data or oracles.
+ *
+ * `transport` discriminates on the originating interceptor: HTTP carries the
+ * URL, ethereum carries the wallet's announced provider info (when present).
+ */
+export type SwapEvent = {
+  kind: "swap";
+  type: "swap" | "bridge";
+  templateId: string;
+  domain: string;
+  chainIn: number;
+  chainOut: number;
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  amountOut: string;
+  amountOutMin?: string;
+  fromAddress?: string;
+  toAddress?: string;
+  provider?: string;
+  transport:
+    | { source: "fetch" | "xhr"; url: string; method: string }
+    | {
+        source: "ethereum";
+        method: string;
+        providerInfo?: { uuid?: string; name?: string; rdns?: string };
+      };
+};
 
 const REQUIRED_FIELDS = [
   "chainIn",

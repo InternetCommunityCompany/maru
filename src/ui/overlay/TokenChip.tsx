@@ -1,5 +1,5 @@
 import { getChainInfo } from "@/metadata/chain-info/get-chain-info";
-import type { TokenInfo } from "@/metadata/token-info/types";
+import type { TokenInfo } from "@/metadata/token-info/token-index";
 import { cx } from "@/ui/cx";
 
 /** Truncated form for an unknown address — `0x1234…cdef`. */

@@ -1,5 +1,5 @@
-import type { InterceptedEvent } from "@/interceptors/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 
 /**
  * Phase of the `InterceptedEvent` that produced a candidate.

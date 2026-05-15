@@ -118,20 +118,14 @@ export function createComparisonOrchestrator(
     update: QuoteUpdate,
     entry: CacheEntry,
   ): ComparisonSnapshot => {
-    switch (entry.status) {
-      case "pending":
-        return { status: "pending", update };
-      case "no_opinion":
-        return { status: "no_opinion", update };
-      case "failed":
-        return { status: "failed", update };
-      case "ok":
-        return {
-          status: "result",
-          update,
-          comparison: compareQuotes(update.swap, entry.quote),
-        };
+    if (entry.status === "ok") {
+      return {
+        status: "ok",
+        update,
+        comparison: compareQuotes(update.swap, entry.quote),
+      };
     }
+    return { status: entry.status, update };
   };
 
   const evict = (sessionKey: SessionKey): void => {
@@ -166,15 +160,6 @@ export function createComparisonOrchestrator(
         session.cache = next;
         session.controller = null;
         emit(snapshotFor(session.update, next));
-      })
-      .catch(() => {
-        // `fetchBestQuote` returns outcomes rather than throwing — belt-and-
-        // braces for misbehaving test doubles.
-        const session = sessions.get(sessionKey);
-        if (!session || session.controller !== controller) return;
-        session.cache = { status: "failed" };
-        session.controller = null;
-        emit({ status: "failed", update: session.update });
       });
 
     return controller;

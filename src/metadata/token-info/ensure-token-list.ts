@@ -1,7 +1,7 @@
 import { BACKEND_URL } from "@/backend-url";
 import { hydrateTokenIndex } from "./token-index";
 import { tokenList } from "./token-list-storage";
-import type { TokenList } from "./types";
+import type { TokenList } from "./token-index";
 
 /**
  * How long a stored token list is considered fresh. After this, the next

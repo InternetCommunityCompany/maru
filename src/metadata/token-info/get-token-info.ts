@@ -1,5 +1,5 @@
 import { lookupToken } from "./token-index";
-import type { TokenInfo } from "./types";
+import type { TokenInfo } from "./token-index";
 
 /**
  * Synchronous lookup of token metadata for `(chainId, address)`.
