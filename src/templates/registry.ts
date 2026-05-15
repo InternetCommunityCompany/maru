@@ -1,5 +1,4 @@
 import type { Template } from "@/template-engine/types";
-import zeroXClassic from "./0x-classic.json";
 import zeroXGasless from "./0x-gasless.json";
 import oneInchClassic from "./1inch-classic.json";
 import oneInchClassicV5 from "./1inch-classic-v5.json";
@@ -12,7 +11,6 @@ import cowswapEthFlow from "./cowswap-eth-flow.json";
 import jumper from "./jumper.json";
 import kyberswap from "./kyberswap.json";
 import lifi from "./lifi.json";
-import pancakeswap from "./pancakeswap.json";
 import paraswap from "./paraswap.json";
 import sushi from "./sushi.json";
 import sushiCrossChain from "./sushi-cross-chain.json";
@@ -29,7 +27,6 @@ import uniswapV2Router from "./uniswap-v2-router.json";
  * top-down — most templates are URL-scoped so collisions are unusual.
  */
 export const registry: Template[] = [
-  zeroXClassic as Template,
   zeroXGasless as Template,
   oneInchClassic as Template,
   oneInchClassicV5 as Template,
@@ -42,7 +39,6 @@ export const registry: Template[] = [
   jumper as Template,
   kyberswap as Template,
   lifi as Template,
-  pancakeswap as Template,
   paraswap as Template,
   sushi as Template,
   sushiCrossChain as Template,

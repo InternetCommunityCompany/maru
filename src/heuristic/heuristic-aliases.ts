@@ -9,8 +9,8 @@
  * matching is the main source of false positives.
  *
  * Drawn from cross-referencing 1inch, 0x, OKX DEX, Lifi, KyberSwap,
- * Paraswap, and OpenOcean traffic — extend the lists as new shapes show
- * up.
+ * Paraswap, OpenOcean, and Across traffic — extend the lists as new
+ * shapes show up.
  */
 export const HEURISTIC_ALIASES = {
   tokenIn: [
@@ -39,6 +39,7 @@ export const HEURISTIC_ALIASES = {
     "sellAmount",
     "srcAmount",
     "inputAmount",
+    "fromTokenAmount",
     "amount",
   ],
   amountOut: [
@@ -48,8 +49,25 @@ export const HEURISTIC_ALIASES = {
     "dstAmount",
     "outputAmount",
     "outAmount",
+    "toTokenAmount",
+    "expectedOutputAmount",
+    "minOutputAmount",
   ],
-  chainIn: ["fromChainId", "srcChainId", "inChainId", "chainId"],
-  chainOut: ["toChainId", "dstChainId", "outChainId", "chainId"],
+  chainIn: [
+    "fromChainId",
+    "srcChainId",
+    "inChainId",
+    "originChainId",
+    "srcChain",
+    "chainId",
+  ],
+  chainOut: [
+    "toChainId",
+    "dstChainId",
+    "outChainId",
+    "destinationChainId",
+    "dstChain",
+    "chainId",
+  ],
   fromAddress: ["fromAddress", "from", "userAddress", "wallet", "user"],
 } as const satisfies Record<string, readonly string[]>;

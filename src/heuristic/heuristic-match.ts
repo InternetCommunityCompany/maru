@@ -4,6 +4,7 @@ import type { SwapEvent } from "@/template-engine/types";
 import { tryParseJson } from "@/template-engine/try-parse-json";
 import { findByAliases } from "./find-by-aliases";
 import { HEURISTIC_ALIASES } from "./heuristic-aliases";
+import { NESTING_PREFIXES } from "./nesting-prefixes";
 import { parseUrlParams } from "./parse-url-params";
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -37,10 +38,11 @@ const asChainId = (v: unknown): number | null => {
  * Strict gates:
  * - Source must be `fetch` or `xhr` (ethereum is template-only, decoding
  *   bytes blindly is too risky).
- * - HTTP method must be `POST` (quote APIs are virtually always POST; pure
- *   GETs are out of scope for now).
  * - Status must be 2xx.
- * - All required fields must resolve and validate.
+ * - All required fields must resolve and validate. The per-field shape
+ *   checks (two distinct 0x-hex addresses, two non-zero digit amounts, a
+ *   positive-integer chain id) are restrictive enough that the HTTP verb
+ *   doesn't need to be — most non-swap endpoints can't satisfy all six.
  *
  * The emitted event uses `templateId: "heuristic"` so the source is
  * distinguishable from curated templates in logs / UIs. `provider` is left
@@ -52,7 +54,6 @@ export function heuristicMatch(
 ): SwapEvent | null {
   if (event.source !== "fetch" && event.source !== "xhr") return null;
   if (event.phase !== "response") return null;
-  if (event.method !== "POST") return null;
   if (event.status != null && (event.status < 200 || event.status >= 300)) {
     return null;
   }
@@ -67,8 +68,8 @@ export function heuristicMatch(
     aliases: readonly string[],
     validate: (v: unknown) => T | null,
   ): T | null =>
-    findByAliases(req, aliases, validate) ??
-    findByAliases(res, aliases, validate) ??
+    findByAliases(req, aliases, validate, NESTING_PREFIXES) ??
+    findByAliases(res, aliases, validate, NESTING_PREFIXES) ??
     findByAliases(params, aliases, validate);
 
   const tokenIn = findIn(HEURISTIC_ALIASES.tokenIn, normalizeTokenAddress);

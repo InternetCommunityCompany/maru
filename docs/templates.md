@@ -205,9 +205,12 @@ passes a per-field shape check (address regex, non-zero digit string,
 positive integer). Heuristic-sourced events use `templateId: "heuristic"`
 and have no `provider`, so they're easy to tell apart in logs.
 
-Strict gates: source must be fetch/XHR, method must be POST, status must
-be 2xx. Ethereum events stay template-only — decoding bytes blindly without
-an ABI is too risky. If you hit a dapp the heuristic doesn't catch, write a
+Strict gates: source must be fetch/XHR and status must be 2xx. Any HTTP
+verb is fair game — the per-field shape checks (two distinct token
+addresses, two non-zero digit amounts, a positive-integer chain id) already
+exclude non-swap traffic, so a separate verb filter would be redundant.
+Ethereum events stay template-only — decoding bytes blindly without an ABI
+is too risky. If you hit a dapp the heuristic doesn't catch, write a
 template; if you hit one it's catching wrong, add a more specific template
 (templates win) or extend the alias lists. The aliases live in one file
 (`src/heuristic/heuristic-aliases.ts`) so adding a new key is a one-line
