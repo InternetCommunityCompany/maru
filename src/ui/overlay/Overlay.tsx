@@ -1,71 +1,48 @@
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { BetterRateCard } from "./BetterRateCard";
-import { ExecutingCard } from "./ExecutingCard";
-import { FailedCard } from "./FailedCard";
 import { Pill } from "./Pill";
-import { SuccessCard } from "./SuccessCard";
-import type { OverlayState, SwapMode } from "./types";
+import { snapshotToView } from "./snapshot-to-view";
+import type { SnapshotStore } from "./snapshot-store";
 
 /** Props for the {@link Overlay} root component. */
 export interface OverlayProps {
-  /** State to start in. Defaults to `"better"` so the design lands open. */
-  initial?: OverlayState;
-  /** Swap mode — selects single-chain vs cross-chain copy / steps. */
-  mode?: SwapMode;
+  /** Source of the current `ComparisonSnapshot`. The overlay subscribes to its changes. */
+  store: SnapshotStore;
 }
 
 /**
- * Root overlay component. Owns the local state machine that drives the
- * card / pill currently rendered in the bottom-right of the host page.
+ * Root overlay component. Subscribes to the snapshot store, maps the
+ * current `ComparisonSnapshot` onto an `OverlayView` via
+ * {@link snapshotToView}, and renders either nothing, a compact pill, or
+ * the full better-rate card.
  *
  * @remarks
- * Mock-data only — no live swap detection yet. Action handlers transition
- * between states so designers can polish each surface in real conditions.
- * Once dismissed, the overlay stays hidden until the page is reloaded.
+ * Dismissal stickiness, debounce, and execution-side cards (executing /
+ * success / failed) are out of scope here — they're driven by sibling
+ * issues (MAR-32 / Better-Rate Execution project).
  */
-export function Overlay({ initial = "better", mode = "swap" }: OverlayProps) {
-  const [state, setState] = useState<OverlayState>(initial);
+export function Overlay({ store }: OverlayProps) {
+  const snapshot = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const view = snapshotToView(snapshot);
+  if (view === null) return null;
 
-  if (state === "dismissed") return null;
+  const noop = () => {};
 
-  const dismiss = () => setState("dismissed");
-
-  let body: React.ReactNode;
-  switch (state) {
-    case "scanning":
-    case "all-good":
-    case "working":
-      body = <Pill variant={state} />;
-      break;
-    case "better":
-    case "bridge":
-      body = (
+  return (
+    <div className="overlay">
+      {view.kind === "pill" ? (
+        <Pill variant={view.variant} />
+      ) : (
         <BetterRateCard
-          mode={state === "bridge" ? "bridge" : mode}
-          onDismiss={dismiss}
-          onAccept={() => setState("executing")}
-          onOpenRoute={dismiss}
+          percentage={view.percentage}
+          route={view.route}
+          src={view.src}
+          dst={view.dst}
+          onDismiss={noop}
+          onAccept={noop}
+          onOpenRoute={noop}
         />
-      );
-      break;
-    case "executing":
-      body = (
-        <ExecutingCard
-          mode={mode}
-          onDismiss={dismiss}
-          onComplete={() => setState("success")}
-        />
-      );
-      break;
-    case "success":
-      body = (
-        <SuccessCard mode={mode} onDismiss={dismiss} onViewExplorer={dismiss} />
-      );
-      break;
-    case "failed":
-      body = <FailedCard onDismiss={dismiss} onRetry={() => setState("executing")} />;
-      break;
-  }
-
-  return <div className="overlay">{body}</div>;
+      )}
+    </div>
+  );
 }

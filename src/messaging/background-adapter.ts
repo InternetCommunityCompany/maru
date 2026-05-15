@@ -12,15 +12,34 @@ type BackgroundMeta = { tabId?: number };
  * `browser.tabs.sendMessage(tabId)` so replies reach the correct tab even
  * when many tabs are connected to the same channel concurrently.
  *
- * Send failures (tab closed/navigated) are swallowed — there's no retry.
+ * When the background *initiates* a message (e.g. `ComparisonChannel.emit`
+ * from the comparison orchestrator), there is no originating tab — `meta`
+ * carries no `tabId`. The adapter falls back to broadcasting via
+ * `browser.tabs.query({})` so every tab with our content script in it
+ * receives the message; tabs without a listener silently fail.
+ *
+ * Send failures (tab closed/navigated, no receiver) are swallowed — there's
+ * no retry.
  */
 export class BackgroundAdapter implements Adapter<BackgroundMeta> {
-  sendMessage: SendMessage<BackgroundMeta> = (message) => {
+  sendMessage: SendMessage<BackgroundMeta> = async (message) => {
     const tabId = message.meta?.tabId;
-    if (tabId == null) return;
-    browser.tabs.sendMessage(tabId, message).catch(() => {
-      // tab may have closed or navigated — drop silently
-    });
+    if (tabId != null) {
+      browser.tabs.sendMessage(tabId, message).catch(() => {
+        // tab may have closed or navigated — drop silently
+      });
+      return;
+    }
+    // Background-initiated send — broadcast to every tab. The runtime
+    // routes the message to any content script with a matching listener;
+    // tabs without one (or that have navigated away) error silently.
+    const tabs = await browser.tabs.query({}).catch(() => []);
+    for (const tab of tabs) {
+      if (tab.id == null) continue;
+      browser.tabs.sendMessage(tab.id, message).catch(() => {
+        // no listener / tab gone — drop silently
+      });
+    }
   };
   onMessage: OnMessage<BackgroundMeta> = (callback) => {
     const handler = (

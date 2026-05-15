@@ -4,9 +4,14 @@ import overlayCss from "@/assets/styles/overlay.css?inline";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { installFonts } from "@/assets/install-fonts";
+import { ContentAdapter } from "@/messaging/content-adapter";
+import { provideComparisonChannel } from "@/messaging/comparison-channel";
+import { ensureChainList } from "@/metadata/chain-info/ensure-chain-list";
+import { ensureTokenList } from "@/metadata/token-info/ensure-token-list";
 import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
 import { Overlay } from "@/ui/overlay/Overlay";
+import { createSnapshotStore } from "@/ui/overlay/snapshot-store";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -18,6 +23,19 @@ export default defineContentScript({
     if (await isHostExcluded()) return;
 
     installFonts();
+
+    // Hydrate the content-script's own copy of the metadata indices.
+    // Each JS context (background SW, content script) holds its own
+    // module-singleton — the background's hydration doesn't reach us here.
+    // Both calls are idempotent and read from `storage.local` first; the
+    // network fetch only fires if the cache is past its TTL.
+    void ensureTokenList();
+    void ensureChainList();
+
+    const store = createSnapshotStore();
+    provideComparisonChannel(new ContentAdapter(), (snapshot) => {
+      store.set(snapshot);
+    });
 
     // Plain `host > shadow > [style, mount]` — no fake <html>/<body> wrappers.
     // Lets `.overlay`'s `position: fixed` and `z-index` work against the page
@@ -34,7 +52,7 @@ export default defineContentScript({
     const root = ReactDOM.createRoot(mount);
     root.render(
       <React.StrictMode>
-        <Overlay />
+        <Overlay store={store} />
       </React.StrictMode>,
     );
 
