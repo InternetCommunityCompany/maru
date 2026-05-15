@@ -213,6 +213,34 @@ template; if you hit one it's catching wrong, add a more specific template
 (`src/heuristic/heuristic-aliases.ts`) so adding a new key is a one-line
 change.
 
+## V1 dapp coverage
+
+The committed set of dapps V1 ships detection for. "Done" for V1 means every
+entry below is reached either by a template or by the heuristic matcher.
+Order matches the registry; contract-keyed templates (no `domains`) are
+flagged because they fire on any UI hosting the same router.
+
+| Dapp        | Type              | Coverage |
+|-------------|-------------------|----------|
+| 0x          | Aggregator        | `0x-classic` (GET `/swap/v*/quote`), `0x-gasless` (GET `/tx-relay/v*/swap/quote`) |
+| 1inch       | Aggregator        | `1inch-classic`, `1inch-classic-v5` (legacy hosts), `1inch-fusion`, `1inch-fusion-plus` (cross-chain), `1inch-fusion-proxy` (UI proxy host) |
+| Bungee      | Cross-chain agg.  | `bungee` (GET `/api/v*/bungee/quote`, iterates `manualRoutes`) |
+| CoW Swap    | Intent-based DEX  | `cowswap` (POST `/{chain}/api/v*/quote`), `cowswap-eth-flow` (ETH-Flow contracts, ABI-decoded) |
+| Jumper      | Cross-chain agg.  | `jumper` (POST `/pipeline/v*/advanced/routes`, iterates `routes`) |
+| KyberSwap   | Aggregator        | `kyberswap` (one template; `$url.segments[0]` carries the chain) |
+| LI.FI       | Cross-chain agg.  | `lifi` (GET `li.quest/v*/quote`) |
+| PancakeSwap | DEX               | `pancakeswap` (GET `hub-gateway.pancakeswap.com/v*/quote`) |
+| ParaSwap    | Aggregator        | `paraswap` (POST `/transactions/{chain}`) |
+| Sushi       | DEX               | `sushi` (GET `/quote/v*/{chain}`), `sushi-cross-chain` (iterates `routes`) |
+| Uniswap     | DEX               | `uniswap` (POST `*.uniswap.org/v*/swap`), `uniswap-v2-router` (contract-keyed, fires on any UI hitting the V2 router) |
+| OKX DEX     | Aggregator        | Heuristic — alias lists explicitly cross-reference OKX field names. |
+| OpenOcean   | Aggregator        | Heuristic — alias lists explicitly cross-reference OpenOcean field names. |
+
+When adding a dapp to the V1 set, add a row here alongside the template (or
+heuristic-alias change). When deprecating one, drop both. The registry order
+in `src/templates/registry.ts` is the canonical evaluation order; this table
+mirrors it for at-a-glance review.
+
 ## Naming convention
 
 To keep the registry navigable and IDs stable, templates follow a small
