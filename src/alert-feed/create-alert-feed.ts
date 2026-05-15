@@ -1,4 +1,5 @@
 import type { QuoteUpdate, SessionKey } from "@/arbiter/types";
+import type { BackendQuote, BackendQuoteClient } from "@/backend/quote-client";
 import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
 import type { QuoteReducer, QuoteReducerChange, QuoteReducerOptions } from "@/quote-reducer/types";
 import { toAlertView } from "./to-alert-view";
@@ -26,23 +27,28 @@ export type AlertFeed = {
 export type AlertFeedOptions = {
   reducerOptions?: QuoteReducerOptions;
   sendToTab: SendAlertFeedMessage;
+  quoteClient?: BackendQuoteClient;
   now?: () => number;
 };
 
 type TabState = {
   reducer: QuoteReducer;
   touchedAt: Map<SessionKey, number>;
+  views: Map<SessionKey, AlertViewModel | null>;
+  pendingQuotes: Map<SessionKey, number>;
   unsubscribeReducer: () => void;
 };
 
 export function createAlertFeed({
   reducerOptions,
   sendToTab,
+  quoteClient,
   now = () => Date.now(),
 }: AlertFeedOptions): AlertFeed {
   const tabs = new Map<number, TabState>();
   const subscriptions = new Map<string, number>();
   let lastTouchedAt = 0;
+  let nextQuoteRequestId = 0;
 
   const getTab = (tabId: number): TabState => {
     const existing = tabs.get(tabId);
@@ -52,6 +58,8 @@ export function createAlertFeed({
     const state: TabState = {
       reducer,
       touchedAt: new Map(),
+      views: new Map(),
+      pendingQuotes: new Map(),
       unsubscribeReducer: () => {},
     };
     state.unsubscribeReducer = reducer.subscribe((change) => {
@@ -68,8 +76,16 @@ export function createAlertFeed({
   ) => {
     if (change.type === "evicted") {
       state.touchedAt.delete(change.sessionKey);
+      state.views.delete(change.sessionKey);
+      state.pendingQuotes.delete(change.sessionKey);
     } else {
       state.touchedAt.set(change.sessionKey, nextTouchedAt());
+      if (quoteClient) {
+        state.views.set(change.sessionKey, { state: "scanning", sourceCount: 1 });
+        requestBackendQuote(tabId, state, change.update);
+      } else {
+        state.views.set(change.sessionKey, toAlertView(change.update));
+      }
     }
 
     const alertChange: AlertFeedChange = {
@@ -79,6 +95,35 @@ export function createAlertFeed({
     };
     emit(tabId, alertChange);
     maybeDisposeTab(tabId, state);
+  };
+
+  const requestBackendQuote = (
+    tabId: number,
+    state: TabState,
+    update: QuoteUpdate,
+  ) => {
+    if (!quoteClient) return;
+
+    const requestId = (nextQuoteRequestId += 1);
+    state.pendingQuotes.set(update.sessionKey, requestId);
+
+    Promise.resolve(quoteClient(update))
+      .catch(() => null)
+      .then((quote) => {
+        if (tabs.get(tabId) !== state) return;
+        if (state.pendingQuotes.get(update.sessionKey) !== requestId) return;
+
+        const current = state.reducer.get(update.sessionKey);
+        if (!isSameUpdate(current, update)) return;
+
+        state.pendingQuotes.delete(update.sessionKey);
+        state.views.set(update.sessionKey, toBetterAlertView(update, quote));
+        emit(tabId, {
+          type: "updated",
+          sessionKey: update.sessionKey,
+          view: currentView(state),
+        });
+      });
   };
 
   const nextTouchedAt = () => {
@@ -161,6 +206,60 @@ function currentView(state: TabState): AlertViewModel | null {
   }
 
   if (latestSessionKey === null) return null;
-  const update = state.reducer.get(latestSessionKey);
-  return update ? toAlertView(update) : null;
+  return state.views.get(latestSessionKey) ?? null;
+}
+
+function toBetterAlertView(
+  update: QuoteUpdate,
+  quote: BackendQuote | null,
+): AlertViewModel | null {
+  if (quote === null) return null;
+
+  const backendAmountOut = toBigInt(quote.amountOut);
+  const dappAmountOut = toBigInt(update.swap.amountOut);
+  if (
+    backendAmountOut === null ||
+    dappAmountOut === null ||
+    backendAmountOut <= dappAmountOut
+  ) {
+    return null;
+  }
+
+  return toAlertView(update, {
+    provider: quote.provider,
+    amountOut: quote.amountOut,
+    savingsPercent: formatSavingsPercent(backendAmountOut, dappAmountOut),
+  });
+}
+
+function isSameUpdate(
+  current: QuoteUpdate | undefined,
+  update: QuoteUpdate,
+): current is QuoteUpdate {
+  return (
+    current !== undefined &&
+    current.sequence === update.sequence &&
+    current.candidateId === update.candidateId
+  );
+}
+
+function toBigInt(value: string): bigint | null {
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
+}
+
+function formatSavingsPercent(
+  backendAmountOut: bigint,
+  dappAmountOut: bigint,
+): string | undefined {
+  if (dappAmountOut <= 0n) return undefined;
+  const bps = ((backendAmountOut - dappAmountOut) * 10_000n) / dappAmountOut;
+  if (bps <= 0n) return undefined;
+
+  const whole = bps / 100n;
+  const fraction = (bps % 100n).toString().padStart(2, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }

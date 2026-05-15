@@ -8,6 +8,7 @@ export default defineConfig({
     name: "MARU",
     description: "Best swap rates, automatically.",
     permissions: ["storage"],
+    host_permissions: ["http://localhost:3000/*", "https://api.usemaru.com/*"],
     action: {
       default_title: "MARU",
     },

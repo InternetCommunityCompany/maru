@@ -152,13 +152,19 @@
 .ol-token-info.right {
   text-align: right;
 }
+.ol-token-info {
+  min-width: 0;
+}
 .ol-token-amount {
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 18px;
   color: var(--text);
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ol-token-amount.hl {
   color: var(--green-dim);

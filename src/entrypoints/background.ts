@@ -3,10 +3,12 @@ import {
   isAlertFeedSubscribeMessage,
   isAlertFeedUnsubscribeMessage,
 } from "@/alert-feed/types";
+import { fetchBackendQuote } from "@/backend/quote-client";
 import { isQuoteUpdateMessage } from "@/messaging/quote-update-message";
 
 export default defineBackground(() => {
   const alertFeed = createAlertFeed({
+    quoteClient: fetchBackendQuote,
     sendToTab: (tabId, message) => browser.tabs.sendMessage(tabId, message),
   });
 

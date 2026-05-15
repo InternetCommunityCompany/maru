@@ -3,10 +3,19 @@ import type { AlertTokenView, AlertViewModel } from "./types";
 
 const ADDRESS_RE = /^0x[a-f0-9]{40}$/i;
 
-export function toAlertView(update: QuoteUpdate): AlertViewModel {
+export type AlertQuoteView = {
+  provider: string;
+  amountOut: string;
+  savingsPercent?: string;
+};
+
+export function toAlertView(
+  update: QuoteUpdate,
+  quote?: AlertQuoteView,
+): AlertViewModel {
   const { swap } = update;
   const mode = swap.type === "bridge" || swap.chainIn !== swap.chainOut ? "bridge" : "swap";
-  const route = formatRoute(swap.provider ?? swap.templateId);
+  const route = formatRoute(quote?.provider ?? swap.provider ?? swap.templateId);
 
   return {
     state: mode === "bridge" ? "bridge" : "better",
@@ -22,10 +31,11 @@ export function toAlertView(update: QuoteUpdate): AlertViewModel {
       },
       destination: {
         token: tokenView(swap.tokenOut),
-        amount: formatAmount(swap.amountOut),
+        amount: formatAmount(quote?.amountOut ?? swap.amountOut),
       },
       confidence: update.confidence,
       sourceCount: 1,
+      savingsPercent: quote?.savingsPercent,
     },
   };
 }
