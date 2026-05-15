@@ -4,8 +4,18 @@ import { BackgroundAdapter } from "@/messaging/background-adapter";
 import { injectComparisonChannel } from "@/messaging/comparison-channel";
 import { provideQuoteChannel } from "@/messaging/quote-channel";
 import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
+import { ensureTokenList } from "@/token-info/ensure-token-list";
 
 export default defineBackground(() => {
+  // Boot-time refresh of the token list — hydrates the in-memory index from
+  // `storage.local`, and re-fetches against the backend if the cache is past
+  // its TTL. Errors are swallowed inside `ensureTokenList` (the existing
+  // cache, if any, still hydrates), so this is safe to fire-and-forget.
+  void ensureTokenList();
+  browser.runtime.onInstalled.addListener(() => {
+    void ensureTokenList();
+  });
+
   const reducer = createQuoteReducer();
 
   // Log only on actual map changes — out-of-order arrivals are dropped
