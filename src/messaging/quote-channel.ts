@@ -24,13 +24,15 @@ class QuoteChannel {
  * that cross-module unions live with the consumer that combines them; the
  * arbiter is the producer and union owner.
  *
- * Heartbeat is disabled — emissions are fire-and-forget and we don't want
- * every tab pinging the service worker every 300 ms. Callers must drop
- * returned promises to keep the dapp non-blocked
- * (`void channel.emit(u).catch(() => {})`).
+ * Heartbeat is enabled — over a long-lived `runtime.Port`, the heartbeat is
+ * the canonical signal that the service worker is still alive. If the SW
+ * gets evicted while a quote `emit` is in flight, the heartbeat fails and
+ * the pending RPC rejects within `heartbeatTimeout` instead of hanging
+ * forever. Callers still drop returned promises so a dead transport doesn't
+ * block the dapp (`void channel.emit(u).catch(() => {})`).
  */
 export const [provideQuoteChannel, injectQuoteChannel] = defineProxy(
   (handler: (update: QuoteUpdate) => void = () => {}) =>
     new QuoteChannel(handler),
-  { namespace: QUOTE_CHANNEL_NAMESPACE, heartbeatCheck: false },
+  { namespace: QUOTE_CHANNEL_NAMESPACE, heartbeatCheck: true },
 );

@@ -19,14 +19,23 @@ export type ComparisonOrchestratorOptions = {
   reducer: QuoteReducer;
   /** Wire-side fetcher — defaults to `fetchBestQuote` in production wiring. */
   fetchBestQuote: FetchBestQuote;
-  /** Sink for `ComparisonSnapshot`s. The background wires this to `ComparisonChannel.emit`. */
-  emit: (snapshot: ComparisonSnapshot) => void;
 };
+
+/** Sink for `ComparisonSnapshot`s — one of these per active content-script port. */
+export type ComparisonSnapshotListener = (snapshot: ComparisonSnapshot) => void;
 
 /** Handle returned by `createComparisonOrchestrator`. */
 export type ComparisonOrchestrator = {
   /**
-   * Tear down: unsubscribes from the reducer, cancels every in-flight fetch.
+   * Subscribe a listener to receive every emitted `ComparisonSnapshot`. The
+   * returned function detaches the listener; it is safe to call multiple
+   * times. Each connected port wires its own listener and tears it down on
+   * `port.onDisconnect` so background→content traffic stays point-cast.
+   */
+  subscribe(listener: ComparisonSnapshotListener): () => void;
+  /**
+   * Tear down: unsubscribes from the reducer, cancels every in-flight fetch,
+   * and drops every snapshot listener.
    *
    * Use during background-worker termination or in tests. After `dispose()`,
    * no further snapshots will be emitted.
@@ -69,6 +78,13 @@ export function createComparisonOrchestrator(
 ): ComparisonOrchestrator {
   const cache = new Map<SessionKey, CacheEntry>();
   const controllers = new Map<SessionKey, AbortController>();
+  const listeners = new Set<ComparisonSnapshotListener>();
+
+  const emit = (snapshot: ComparisonSnapshot): void => {
+    // Iterate a snapshot of the set so a listener unsubscribing mid-fanout
+    // (e.g. its port just dropped) doesn't skip a sibling.
+    for (const listener of [...listeners]) listener(snapshot);
+  };
 
   const buildRequest = (update: QuoteUpdate): QuoteRequest => {
     const { swap } = update;
@@ -105,7 +121,7 @@ export function createComparisonOrchestrator(
   const startFetch = (update: QuoteUpdate): void => {
     const sessionKey = update.sessionKey;
     cache.set(sessionKey, { status: "pending" });
-    options.emit({ status: "pending", update });
+    emit({ status: "pending", update });
 
     const controller = new AbortController();
     controllers.set(sessionKey, controller);
@@ -129,7 +145,7 @@ export function createComparisonOrchestrator(
         // Emit against the reducer's current best — the session may have
         // been refined since `added` fired.
         const current = options.reducer.get(sessionKey) ?? update;
-        options.emit(snapshotFor(current, entry));
+        emit(snapshotFor(current, entry));
       })
       .catch(() => {
         // `fetchBestQuote` never throws — outcomes are always returned — but
@@ -138,7 +154,7 @@ export function createComparisonOrchestrator(
         controllers.delete(sessionKey);
         cache.set(sessionKey, { status: "failed" });
         const current = options.reducer.get(sessionKey) ?? update;
-        options.emit({ status: "failed", update: current });
+        emit({ status: "failed", update: current });
       });
   };
 
@@ -155,7 +171,7 @@ export function createComparisonOrchestrator(
         startFetch(change.update);
         return;
       }
-      options.emit(snapshotFor(change.update, entry));
+      emit(snapshotFor(change.update, entry));
       return;
     }
 
@@ -169,11 +185,16 @@ export function createComparisonOrchestrator(
   });
 
   return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
     dispose() {
       unsubscribe();
       for (const controller of controllers.values()) controller.abort();
       controllers.clear();
       cache.clear();
+      listeners.clear();
     },
   };
 }

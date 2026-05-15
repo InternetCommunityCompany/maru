@@ -4,9 +4,20 @@ import overlayCss from "@/assets/styles/overlay.css?inline";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { installFonts } from "@/assets/install-fonts";
+import { provideComparisonChannel } from "@/messaging/comparison-channel";
+import { connectWithReconnect } from "@/messaging/connect-with-reconnect";
+import { PortAdapter } from "@/messaging/port-adapter";
 import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
 import { Overlay } from "@/ui/overlay/Overlay";
+
+/**
+ * Wire namespace of the port the overlay content script opens to the
+ * background. The background's `runtime.onConnect` listener matches on this
+ * name to wire `ComparisonChannel` for this tab — snapshots flow background→
+ * overlay over this single port.
+ */
+const COMPARISON_PORT_NAME = "maru:comparison";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -38,7 +49,19 @@ export default defineContentScript({
       </React.StrictMode>,
     );
 
+    // Open a long-lived port to the background and (re-)wire the comparison
+    // channel provider against each fresh port. The handler is a stub — the
+    // overlay state machine (MAR-32) is the consumer; this issue moves
+    // transport only.
+    const reconnector = connectWithReconnect(COMPARISON_PORT_NAME, (port) => {
+      const adapter = new PortAdapter(port);
+      provideComparisonChannel(adapter, () => {
+        // TODO(MAR-32): wire snapshots into the overlay state machine.
+      });
+    });
+
     const remove = () => {
+      reconnector.close();
       root.unmount();
       host.remove();
     };

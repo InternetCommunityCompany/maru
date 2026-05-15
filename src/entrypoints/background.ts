@@ -1,11 +1,14 @@
 import { createComparisonOrchestrator } from "@/comparison/comparison-orchestrator";
 import { fetchBestQuote } from "@/comparison/fetch-best-quote";
-import { BackgroundAdapter } from "@/messaging/background-adapter";
 import { injectComparisonChannel } from "@/messaging/comparison-channel";
+import { PortAdapter } from "@/messaging/port-adapter";
 import { provideQuoteChannel } from "@/messaging/quote-channel";
+import { QUOTE_RELAY_PORT_NAME } from "@/messaging/relay";
 import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
 import { ensureChainList } from "@/metadata/chain-info/ensure-chain-list";
 import { ensureTokenList } from "@/metadata/token-info/ensure-token-list";
+
+const COMPARISON_PORT_NAME = "maru:comparison";
 
 export default defineBackground(() => {
   // Boot-time refresh of the metadata caches — each hydrates its in-memory
@@ -40,19 +43,36 @@ export default defineBackground(() => {
     );
   });
 
-  // Producer side of the comparison channel — consumer wiring lives in the
-  // surfaces that subscribe (MAR-31..35, dev overlay). The orchestrator is
-  // the only emitter.
-  const comparisonChannel = injectComparisonChannel(new BackgroundAdapter());
-  createComparisonOrchestrator({
+  const orchestrator = createComparisonOrchestrator({
     reducer,
     fetchBestQuote,
-    emit: (snapshot) => {
-      void comparisonChannel.emit(snapshot).catch(() => {});
-    },
   });
 
-  provideQuoteChannel(new BackgroundAdapter(), (update) =>
-    reducer.ingest(update),
-  );
+  // Per-tab port wiring. Each content script opens one of two named ports;
+  // the connect handler attaches the appropriate channel(s) for that tab
+  // and tears everything down when the port disconnects. No global
+  // `browser.tabs.query`/`sendMessage` fanout — snapshots are point-cast.
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name === QUOTE_RELAY_PORT_NAME) {
+      const adapter = new PortAdapter(port);
+      provideQuoteChannel(adapter, (update) => reducer.ingest(update));
+      // Quote provider has no resources to release beyond the adapter's
+      // `onMessage` listener, which dies with the port. Nothing else to do.
+      return;
+    }
+    if (port.name === COMPARISON_PORT_NAME) {
+      const adapter = new PortAdapter(port);
+      const channel = injectComparisonChannel(adapter);
+      const unsubscribe = orchestrator.subscribe((snapshot) => {
+        void channel.emit(snapshot).catch(() => {
+          // Heartbeat rejection or port death — `onDisconnect` will fire and
+          // tear this listener down. Nothing actionable here.
+        });
+      });
+      port.onDisconnect.addListener(() => unsubscribe());
+      return;
+    }
+    // Unknown port name — close it so the caller doesn't believe it's wired.
+    port.disconnect();
+  });
 });
