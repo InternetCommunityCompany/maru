@@ -72,8 +72,8 @@ describe("comparison-orchestrator: added", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update());
 
@@ -92,8 +92,8 @@ describe("comparison-orchestrator: added", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update());
     pending[0]!.outcome = { status: "ok", quote: ok };
@@ -118,8 +118,8 @@ describe("comparison-orchestrator: added", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update());
     pending[0]!.outcome = { status: "no_opinion" };
@@ -139,8 +139,8 @@ describe("comparison-orchestrator: added", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update());
     pending[0]!.outcome = { status: "failed", reason: "http_500" };
@@ -162,8 +162,8 @@ describe("comparison-orchestrator: updated", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update({ sequence: 1, swap: swap({ amountOut: "500000000000000000" }) }));
     pending[0]!.outcome = { status: "ok", quote: ok };
@@ -193,8 +193,8 @@ describe("comparison-orchestrator: updated", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update({ sequence: 1 }));
     sink.length = 0;
@@ -215,8 +215,8 @@ describe("comparison-orchestrator: evicted", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     vi.useFakeTimers();
     try {
@@ -247,8 +247,8 @@ describe("comparison-orchestrator: evicted", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: (s) => sink.push(s),
     });
+    orchestrator.subscribe((s) => sink.push(s));
 
     reducer.ingest(update());
     sink.length = 0;
@@ -273,7 +273,6 @@ describe("comparison-orchestrator: request shape", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: () => {},
     });
 
     reducer.ingest(
@@ -312,7 +311,6 @@ describe("comparison-orchestrator: request shape", () => {
     const orchestrator = createComparisonOrchestrator({
       reducer,
       fetchBestQuote: fetchImpl,
-      emit: () => {},
     });
 
     for (let i = 1; i <= 5; i++) {

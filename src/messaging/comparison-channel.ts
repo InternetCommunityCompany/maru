@@ -27,13 +27,16 @@ class ComparisonChannel {
  *   (background) and returns a proxy whose `emit(snapshot)` ferries snapshots
  *   to consumers.
  *
- * Heartbeat is disabled — like the quote channel, emissions are
- * fire-and-forget. Callers must drop the returned promise
- * (`void channel.emit(s).catch(() => {})`) so a missing consumer doesn't
- * stall the producer.
+ * Heartbeat is enabled — over a long-lived `runtime.Port`, the heartbeat is
+ * the canonical signal that the consumer is still alive. If the overlay
+ * content script unloads mid-emit, the heartbeat fails and the pending RPC
+ * rejects within `heartbeatTimeout` instead of hanging the orchestrator's
+ * snapshot fanout. Callers still drop the returned promise
+ * (`void channel.emit(s).catch(() => {})`) so a slow consumer doesn't stall
+ * the producer.
  */
 export const [provideComparisonChannel, injectComparisonChannel] = defineProxy(
   (handler: (snapshot: ComparisonSnapshot) => void = () => {}) =>
     new ComparisonChannel(handler),
-  { namespace: COMPARISON_CHANNEL_NAMESPACE, heartbeatCheck: false },
+  { namespace: COMPARISON_CHANNEL_NAMESPACE, heartbeatCheck: true },
 );
