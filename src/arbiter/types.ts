@@ -82,7 +82,7 @@ export type QuoteSession = {
 };
 
 /**
- * The arbiter's output — the wire payload carried by `EventChannel` from the
+ * The arbiter's output — the wire payload carried by `QuoteChannel` from the
  * MAIN-world producer to the background reducer.
  *
  * One session per `sessionKey`. Within a session, `sequence` is monotonic;

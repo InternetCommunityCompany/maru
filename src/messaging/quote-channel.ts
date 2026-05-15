@@ -1,8 +1,8 @@
 import { defineProxy } from "comctx";
 import type { QuoteUpdate } from "@/arbiter/types";
-import { CHANNEL_NAMESPACE } from "./namespace";
+import { QUOTE_CHANNEL_NAMESPACE } from "./namespace";
 
-class EventChannel {
+class QuoteChannel {
   constructor(private handler: (update: QuoteUpdate) => void = () => {}) {}
   async emit(update: QuoteUpdate): Promise<void> {
     this.handler(update);
@@ -10,12 +10,12 @@ class EventChannel {
 }
 
 /**
- * The comctx provider/injector pair for the maru event channel.
+ * The comctx provider/injector pair for the maru quote channel.
  *
- * - `provideEventChannel(adapter, handler)` is called once on the consuming
+ * - `provideQuoteChannel(adapter, handler)` is called once on the consuming
  *   side (typically the background) and runs `handler` for every `QuoteUpdate`
- *   sent by injectors. Returns the underlying `EventChannel` instance.
- * - `injectEventChannel(adapter)` is called on each producer side (typically
+ *   sent by injectors. Returns the underlying `QuoteChannel` instance.
+ * - `injectQuoteChannel(adapter)` is called on each producer side (typically
  *   the MAIN-world content script) and returns a proxy whose `emit(update)`
  *   ferries updates back to the provider.
  *
@@ -29,8 +29,8 @@ class EventChannel {
  * returned promises to keep the dapp non-blocked
  * (`void channel.emit(u).catch(() => {})`).
  */
-export const [provideEventChannel, injectEventChannel] = defineProxy(
+export const [provideQuoteChannel, injectQuoteChannel] = defineProxy(
   (handler: (update: QuoteUpdate) => void = () => {}) =>
-    new EventChannel(handler),
-  { namespace: CHANNEL_NAMESPACE, heartbeatCheck: false },
+    new QuoteChannel(handler),
+  { namespace: QUOTE_CHANNEL_NAMESPACE, heartbeatCheck: false },
 );

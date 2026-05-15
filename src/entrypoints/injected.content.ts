@@ -3,7 +3,7 @@ import { createDomGrounding } from "@/dom-grounding";
 import { resolveTokenMeta } from "@/dom-grounding/stub-token-meta";
 import { installInterceptors } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "@/heuristic/heuristic-match";
-import { injectEventChannel } from "@/messaging/channel";
+import { injectQuoteChannel } from "@/messaging/quote-channel";
 import { MainAdapter } from "@/messaging/main-adapter";
 import { matchTemplates } from "@/template-engine/match-templates";
 import { registry } from "@/templates/registry";
@@ -13,7 +13,7 @@ export default defineContentScript({
   world: "MAIN",
   runAt: "document_start",
   main() {
-    const channel = injectEventChannel(new MainAdapter());
+    const channel = injectQuoteChannel(new MainAdapter());
 
     const arbiter = createArbiter({
       emit: (update) => {
