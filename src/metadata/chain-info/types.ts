@@ -6,8 +6,9 @@
  * badge on the alert overlay's `TokenChip` (and any other surface that wants
  * an icon).
  *
- * `iconUrl` is the *resolved* URL — `null` when upstream had no icon for the
- * chain. See {@link resolveIconUrl} for the URL-vs-slug logic.
+ * `iconUrl` is the resolved URL the backend ships — `null` when upstream had
+ * no icon for the chain. The extension renders it as-is; the backend handles
+ * the URL-vs-slug rewriting.
  */
 export type ChainInfo = {
   chainId: number;
@@ -19,10 +20,7 @@ export type ChainInfo = {
 /**
  * Backend response shape for `GET /api/chainlist`. Slim projection of the
  * upstream `chainlist.org/rpcs.json` carrying only the fields the extension
- * reads.
- *
- * `icon` is the upstream's raw field (URL or DefiLlama slug) — the index
- * resolves it to a concrete URL when hydrating.
+ * reads, with the icon already resolved to a renderable URL.
  */
 export type ChainList = {
   chains: ChainListEntry[];
@@ -31,15 +29,14 @@ export type ChainList = {
 /**
  * One chain's slimmed entry as it appears on the wire.
  *
- * The shape mirrors {@link ChainInfo} but keeps the raw `icon` field instead
- * of a pre-resolved URL — resolution lives client-side in {@link resolveIconUrl}
- * so the backend stays a pure proxy.
+ * Identical shape to {@link ChainInfo} — the backend is the authority on
+ * icon URL resolution, so the entry needs no further rewriting client-side.
  */
 export type ChainListEntry = {
   chainId: number;
   name: string;
   shortName: string;
-  icon?: string;
+  iconUrl: string | null;
 };
 
 /**

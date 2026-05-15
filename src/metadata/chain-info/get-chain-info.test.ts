@@ -14,7 +14,7 @@ describe("getChainInfo", () => {
           chainId: 1,
           name: "Ethereum Mainnet",
           shortName: "eth",
-          icon: "ethereum",
+          iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
         },
       ],
     });
@@ -22,7 +22,9 @@ describe("getChainInfo", () => {
     expect(info).not.toBeNull();
     expect(info?.name).toBe("Ethereum Mainnet");
     expect(info?.shortName).toBe("eth");
-    expect(info?.iconUrl).toContain("rsz_ethereum.jpg");
+    expect(info?.iconUrl).toBe(
+      "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+    );
   });
 
   it("returns null for unknown chains — alert overlay omits the badge", () => {

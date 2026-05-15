@@ -1,4 +1,3 @@
-import { resolveIconUrl } from "./icon-url";
 import type { ChainInfo, ChainList } from "./types";
 
 /**
@@ -14,9 +13,9 @@ const index = new Map<number, ChainInfo>();
  * Replace the index contents with `list.chains`.
  *
  * Called on SW boot (right after reading the persisted blob) and on every
- * successful refresh inside {@link ensureChainList}. Resolves the upstream
- * `icon` field to a concrete URL once at hydration time so the lookup hot
- * path doesn't repeat that work on every read.
+ * successful refresh inside {@link ensureChainList}. Entries are copied 1:1 —
+ * the backend already ships the resolved `iconUrl`, so nothing more to do
+ * on the way into the index.
  *
  * The swap is destructive — entries removed from the upstream list disappear
  * from lookups on the next hydration.
@@ -28,7 +27,7 @@ export function hydrateChainIndex(list: ChainList): void {
       chainId: entry.chainId,
       name: entry.name,
       shortName: entry.shortName,
-      iconUrl: resolveIconUrl(entry.icon),
+      iconUrl: entry.iconUrl,
     });
   }
 }

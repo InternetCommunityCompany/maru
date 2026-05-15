@@ -8,18 +8,19 @@ const sample: ChainList = {
       chainId: 1,
       name: "Ethereum Mainnet",
       shortName: "eth",
-      icon: "ethereum",
+      iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
     },
     {
       chainId: 42161,
       name: "Arbitrum One",
       shortName: "arb1",
-      icon: "https://example.test/arb.png",
+      iconUrl: "https://example.test/arb.png",
     },
     {
       chainId: 999,
       name: "Iconless",
       shortName: "icns",
+      iconUrl: null,
     },
   ],
 };
@@ -29,7 +30,7 @@ beforeEach(() => {
 });
 
 describe("hydrateChainIndex + lookupChain", () => {
-  it("indexes entries by chainId and resolves the icon URL up front", () => {
+  it("indexes entries by chainId and surfaces the backend-resolved icon URL", () => {
     hydrateChainIndex(sample);
     expect(lookupChain(1)?.name).toBe("Ethereum Mainnet");
     expect(lookupChain(1)?.iconUrl).toBe(
@@ -42,7 +43,7 @@ describe("hydrateChainIndex + lookupChain", () => {
     expect(lookupChain(42161)?.iconUrl).toBe("https://example.test/arb.png");
   });
 
-  it("yields iconUrl: null for chains without an upstream icon", () => {
+  it("yields iconUrl: null for chains the backend marks as icon-less", () => {
     hydrateChainIndex(sample);
     expect(lookupChain(999)?.iconUrl).toBeNull();
   });

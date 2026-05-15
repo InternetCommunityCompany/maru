@@ -9,7 +9,7 @@ const eth = {
   chainId: 1,
   name: "Ethereum Mainnet",
   shortName: "eth",
-  icon: "ethereum",
+  iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
 };
 
 const sample: ChainList = { chains: [eth] };
@@ -44,7 +44,9 @@ describe("ensureChainList: cold install", () => {
     expect(stored.fetchedAt).toBe(now);
     expect(stored.data.chains).toHaveLength(1);
     expect(lookupChain(1)?.name).toBe("Ethereum Mainnet");
-    expect(lookupChain(1)?.iconUrl).toContain("rsz_ethereum.jpg");
+    expect(lookupChain(1)?.iconUrl).toBe(
+      "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+    );
   });
 });
 
