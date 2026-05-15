@@ -1,10 +1,10 @@
 import { cx } from "@/ui/cx";
-import type { TokenInfo } from "./tokens";
+import type { AlertTokenView } from "@/alert-feed/types";
 
 /** Props for the {@link TokenChip} component. */
 export interface TokenChipProps {
   /** Token catalogue entry to render. */
-  token: TokenInfo;
+  token: AlertTokenView;
   /** Formatted human-readable amount, rendered above the symbol. */
   amount: string;
   /** Reverse the order so the icon sits on the right (use on destination). */

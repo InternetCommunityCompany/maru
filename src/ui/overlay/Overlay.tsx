@@ -1,71 +1,106 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { AlertCardViewModel, AlertViewModel } from "@/alert-feed/types";
 import { BetterRateCard } from "./BetterRateCard";
 import { ExecutingCard } from "./ExecutingCard";
 import { FailedCard } from "./FailedCard";
 import { Pill } from "./Pill";
 import { SuccessCard } from "./SuccessCard";
-import type { OverlayState, SwapMode } from "./types";
+
+type LocalState = "alert" | "executing" | "success" | "failed";
 
 /** Props for the {@link Overlay} root component. */
 export interface OverlayProps {
-  /** State to start in. Defaults to `"better"` so the design lands open. */
-  initial?: OverlayState;
-  /** Swap mode — selects single-chain vs cross-chain copy / steps. */
-  mode?: SwapMode;
+  /** Live alert state for this tab. `null` hides the surface. */
+  alert: AlertViewModel | null;
 }
 
 /**
- * Root overlay component. Owns the local state machine that drives the
- * card / pill currently rendered in the bottom-right of the host page.
- *
- * @remarks
- * Mock-data only — no live swap detection yet. Action handlers transition
- * between states so designers can polish each surface in real conditions.
- * Once dismissed, the overlay stays hidden until the page is reloaded.
+ * Root overlay component. Rendering is driven by the background-owned alert
+ * view model; local state is limited to per-page dismissal and execution
+ * stubs until the real execution flow lands.
  */
-export function Overlay({ initial = "better", mode = "swap" }: OverlayProps) {
-  const [state, setState] = useState<OverlayState>(initial);
+export function Overlay({ alert }: OverlayProps) {
+  const [dismissedSessions, setDismissedSessions] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [localState, setLocalState] = useState<LocalState>("alert");
 
-  if (state === "dismissed") return null;
+  const card = alert && "card" in alert ? alert.card : null;
+  const sessionKey = card?.sessionKey ?? null;
 
-  const dismiss = () => setState("dismissed");
+  useEffect(() => {
+    setLocalState("alert");
+  }, [sessionKey]);
 
-  let body: React.ReactNode;
-  switch (state) {
+  const isDismissed = useMemo(
+    () => sessionKey !== null && dismissedSessions.has(sessionKey),
+    [dismissedSessions, sessionKey],
+  );
+
+  if (!alert || isDismissed) return null;
+
+  const dismiss = () => {
+    if (!sessionKey) return;
+    setDismissedSessions((previous) => new Set(previous).add(sessionKey));
+  };
+
+  let body: ReactNode;
+  switch (alert.state) {
     case "scanning":
     case "all-good":
-    case "working":
-      body = <Pill variant={state} />;
+      body = <Pill variant={alert.state} sourceCount={alert.sourceCount} />;
       break;
     case "better":
     case "bridge":
-      body = (
-        <BetterRateCard
-          mode={state === "bridge" ? "bridge" : mode}
-          onDismiss={dismiss}
-          onAccept={() => setState("executing")}
-          onOpenRoute={dismiss}
-        />
-      );
-      break;
-    case "executing":
-      body = (
-        <ExecutingCard
-          mode={mode}
-          onDismiss={dismiss}
-          onComplete={() => setState("success")}
-        />
-      );
-      break;
-    case "success":
-      body = (
-        <SuccessCard mode={mode} onDismiss={dismiss} onViewExplorer={dismiss} />
-      );
-      break;
-    case "failed":
-      body = <FailedCard onDismiss={dismiss} onRetry={() => setState("executing")} />;
+      if (localState === "executing") {
+        body = (
+          <ExecutingCard
+            mode={alert.card.mode}
+            route={alert.card.route}
+            onDismiss={dismiss}
+            onComplete={() => setLocalState("success")}
+          />
+        );
+        break;
+      }
+      if (localState === "success") {
+        body = (
+          <SuccessCard
+            card={alert.card}
+            onDismiss={dismiss}
+            onViewExplorer={dismiss}
+          />
+        );
+        break;
+      }
+      if (localState === "failed") {
+        body = (
+          <FailedCard
+            mode={alert.card.mode}
+            onDismiss={dismiss}
+            onRetry={() => setLocalState("executing")}
+          />
+        );
+        break;
+      }
+      body = renderAlertCard(alert.card, dismiss, () => setLocalState("executing"));
       break;
   }
 
   return <div className="overlay">{body}</div>;
+}
+
+function renderAlertCard(
+  card: AlertCardViewModel,
+  dismiss: () => void,
+  accept: () => void,
+): ReactNode {
+  return (
+    <BetterRateCard
+      card={card}
+      onDismiss={dismiss}
+      onAccept={accept}
+      onOpenRoute={dismiss}
+    />
+  );
 }

@@ -1,7 +1,10 @@
 import { Wordmark } from "./Wordmark";
+import type { SwapMode } from "./types";
 
 /** Props for the {@link FailedCard} component. */
 export interface FailedCardProps {
+  /** Whether the failed attempt was a swap or bridge. */
+  mode: SwapMode;
   /** User cancelled the retry flow. */
   onDismiss: () => void;
   /** User wants to retry — typically transitions back to the executing card. */
@@ -12,7 +15,7 @@ export interface FailedCardProps {
  * Failure card. Reassures the user funds are safe, names the failure mode,
  * and offers a retry CTA. Uses the system error palette (red soft).
  */
-export function FailedCard({ onDismiss, onRetry }: FailedCardProps) {
+export function FailedCard({ mode, onDismiss, onRetry }: FailedCardProps) {
   return (
     <div className="overlay-card big">
       <div className="ol-header">
@@ -36,7 +39,7 @@ export function FailedCard({ onDismiss, onRetry }: FailedCardProps) {
           Cancel
         </button>
         <button className="ol-btn primary" onClick={onRetry}>
-          Retry swap
+          Retry {mode}
         </button>
       </div>
     </div>

@@ -28,9 +28,8 @@ export type QuoteReducerListener = (change: QuoteReducerChange) => void;
 /**
  * Handle returned by `createQuoteReducer`.
  *
- * `ingest` is the wire-side entry point — wire it to the `provideEventChannel`
- * handler. The remaining methods form the read / subscribe surface a UI
- * consumer (or any other observer) uses.
+ * `ingest` is the wire-side entry point. The remaining methods form the
+ * read / subscribe surface a UI consumer (or any other observer) uses.
  */
 export type QuoteReducer = {
   /**

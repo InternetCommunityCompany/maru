@@ -7,6 +7,8 @@ import { Wordmark } from "./Wordmark";
 export interface ExecutingCardProps {
   /** Whether the execution is for a swap or a bridge. */
   mode: SwapMode;
+  /** Route label selected by the alert feed. */
+  route: string;
   /** Dismiss handler invoked when the user closes the card mid-flight. */
   onDismiss: () => void;
   /** Fired once the final step lands so the host can transition to success. */
@@ -21,7 +23,7 @@ const BRIDGE_STEPS = ["Approve", "Source", "Bridging", "Done"] as const;
  * advance on a 1.1s interval — once the last step completes, `onComplete`
  * fires so the parent can swap in the success card.
  */
-export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProps) {
+export function ExecutingCard({ mode, route, onDismiss, onComplete }: ExecutingCardProps) {
   const labels = mode === "bridge" ? BRIDGE_STEPS : SWAP_STEPS;
   const [step, setStep] = useState(0);
 
@@ -56,8 +58,8 @@ export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProp
         </button>
       </div>
       <div className="ol-headline">
-        Routing through <strong>{mode === "bridge" ? "Stargate" : "1inch"}</strong>. Confirm
-        in your wallet — I&apos;ll handle the rest.
+        Routing through <strong>{route}</strong>. Confirm in your wallet — I&apos;ll handle
+        the rest.
       </div>
       <div className="ol-steps">
         {labels.map((label, i) => {
@@ -73,7 +75,6 @@ export function ExecutingCard({ mode, onDismiss, onComplete }: ExecutingCardProp
           );
         })}
       </div>
-      <div className="ol-tx-hash">tx: 0x8a4f…b21c</div>
     </div>
   );
 }

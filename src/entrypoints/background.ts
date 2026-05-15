@@ -1,29 +1,35 @@
-import { BackgroundAdapter } from "@/messaging/background-adapter";
-import { provideEventChannel } from "@/messaging/channel";
-import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
+import { createAlertFeed } from "@/alert-feed/create-alert-feed";
+import {
+  isAlertFeedSubscribeMessage,
+  isAlertFeedUnsubscribeMessage,
+} from "@/alert-feed/types";
+import { isQuoteUpdateMessage } from "@/messaging/quote-update-message";
 
 export default defineBackground(() => {
-  const reducer = createQuoteReducer();
-
-  // Log only on actual map changes — out-of-order arrivals are dropped
-  // silently inside the reducer, so the dev terminal shows one line per
-  // visible state change instead of one per emission.
-  reducer.subscribe((change) => {
-    if (change.type === "evicted") {
-      console.log(`[maru -] session ${change.sessionKey} evicted (idle)`);
-      return;
-    }
-    const { swap } = change.update;
-    const tag = change.type === "added" ? "+" : "~";
-    console.log(
-      `[maru ${tag}${swap.type}] ${swap.domain} via ${swap.provider ?? swap.templateId}: ` +
-        `${swap.amountIn} ${swap.tokenIn} → ${swap.amountOut} ${swap.tokenOut} ` +
-        `(seq ${change.update.sequence}, conf ${change.update.confidence.toFixed(2)})`,
-      change.update,
-    );
+  const alertFeed = createAlertFeed({
+    sendToTab: (tabId, message) => browser.tabs.sendMessage(tabId, message),
   });
 
-  provideEventChannel(new BackgroundAdapter(), (update) =>
-    reducer.ingest(update),
-  );
+  browser.runtime.onMessage.addListener((message, sender) => {
+    if (isQuoteUpdateMessage(message)) {
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) return;
+      alertFeed.ingest(tabId, message.update);
+      return;
+    }
+
+    if (isAlertFeedSubscribeMessage(message)) {
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) return Promise.resolve({ view: null });
+      return Promise.resolve(alertFeed.subscribe(tabId, message.subscriptionId));
+    }
+
+    if (isAlertFeedUnsubscribeMessage(message)) {
+      alertFeed.unsubscribe(message.subscriptionId);
+    }
+  });
+
+  browser.tabs.onRemoved.addListener((tabId) => {
+    alertFeed.disposeTab(tabId);
+  });
 });

@@ -1,11 +1,11 @@
 import { Maru } from "@/ui/mascot/Maru";
-import type { SwapMode } from "./types";
+import type { AlertCardViewModel } from "@/alert-feed/types";
 import { Wordmark } from "./Wordmark";
 
 /** Props for the {@link SuccessCard} component. */
 export interface SuccessCardProps {
-  /** Whether the user just completed a swap or a bridge. */
-  mode: SwapMode;
+  /** Route and token data from the accepted alert. */
+  card: AlertCardViewModel;
   /** Dismiss handler invoked when the user closes the celebration. */
   onDismiss: () => void;
   /** Open the explorer link for this transaction (no-op stub for now). */
@@ -16,8 +16,7 @@ export interface SuccessCardProps {
  * Celebration card shown after a swap/bridge lands. Big savings amount,
  * dancing Maru, and explorer / close actions.
  */
-export function SuccessCard({ mode, onDismiss, onViewExplorer }: SuccessCardProps) {
-  const savings = mode === "bridge" ? "4.62" : "10.18";
+export function SuccessCard({ card, onDismiss, onViewExplorer }: SuccessCardProps) {
   return (
     <div className="overlay-card big success">
       <div className="ol-header">
@@ -31,9 +30,11 @@ export function SuccessCard({ mode, onDismiss, onViewExplorer }: SuccessCardProp
           <Maru state="dancing" size={64} />
         </div>
         <div>
-          <div className="ol-success-eyebrow">You just saved</div>
-          <div className="ol-success-amount">${savings}</div>
-          <div className="ol-success-sub">vs. the rate you would&apos;ve gotten</div>
+          <div className="ol-success-eyebrow">Better route complete</div>
+          <div className="ol-success-amount">
+            {card.destination.amount} {card.destination.token.sym}
+          </div>
+          <div className="ol-success-sub">via {card.route}</div>
         </div>
       </div>
       <div className="ol-actions">

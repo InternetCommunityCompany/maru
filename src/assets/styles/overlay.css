@@ -12,6 +12,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
+  max-width: calc(100vw - 24px);
   z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
@@ -23,7 +24,7 @@
 }
 
 .overlay-card.big {
-  width: 380px;
+  width: min(380px, calc(100vw - 24px));
   background: var(--surface);
   border: 3px solid var(--border-strong);
   box-shadow: var(--sh-pixel-3);
@@ -303,13 +304,6 @@
     box-shadow: 0 0 0 6px rgb(var(--gold-rgb) / 0);
   }
 }
-.ol-tx-hash {
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
 /* Success */
 .ol-success-body {
   display: flex;
@@ -461,5 +455,47 @@
   30% {
     opacity: 1;
     transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 430px) {
+  .overlay {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
+    align-items: stretch;
+  }
+
+  .overlay-card.big {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .ol-token-row {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .ol-token {
+    gap: 8px;
+  }
+
+  .ol-token-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .ol-token-amount {
+    font-size: 15px;
+  }
+
+  .ol-token-symbol {
+    font-size: 10px;
+  }
+
+  .ol-btn {
+    white-space: normal;
   }
 }

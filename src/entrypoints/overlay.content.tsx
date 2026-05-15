@@ -1,8 +1,15 @@
 import tokensCss from "@/assets/styles/tokens.css?inline";
 import overlayCss from "@/assets/styles/overlay.css?inline";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import {
+  createAlertFeedSubscribeMessage,
+  createAlertFeedUnsubscribeMessage,
+  isAlertFeedChangeMessage,
+  isAlertFeedSubscribeResponse,
+  type AlertViewModel,
+} from "@/alert-feed/types";
 import { installFonts } from "@/assets/install-fonts";
 import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
@@ -34,11 +41,14 @@ export default defineContentScript({
     const root = ReactDOM.createRoot(mount);
     root.render(
       <React.StrictMode>
-        <Overlay />
+        <LiveOverlay />
       </React.StrictMode>,
     );
 
+    let removed = false;
     const remove = () => {
+      if (removed) return;
+      removed = true;
       root.unmount();
       host.remove();
     };
@@ -55,4 +65,45 @@ export default defineContentScript({
 async function isHostExcluded(): Promise<boolean> {
   const list = await excludedSites.getValue();
   return list.includes(canonicaliseHost(location.hostname));
+}
+
+function LiveOverlay() {
+  const [alert, setAlert] = useState<AlertViewModel | null>(null);
+
+  useEffect(() => {
+    const subscriptionId = createSubscriptionId();
+    let cancelled = false;
+
+    const onMessage = (message: unknown) => {
+      if (!isAlertFeedChangeMessage(message)) return;
+      if (message.subscriptionId !== subscriptionId) return;
+      setAlert(message.change.view);
+    };
+
+    browser.runtime.onMessage.addListener(onMessage);
+    browser.runtime
+      .sendMessage(createAlertFeedSubscribeMessage(subscriptionId))
+      .then((response) => {
+        if (cancelled || !isAlertFeedSubscribeResponse(response)) return;
+        setAlert(response.view);
+      })
+      .catch(() => {
+        if (!cancelled) setAlert(null);
+      });
+
+    return () => {
+      cancelled = true;
+      browser.runtime.onMessage.removeListener(onMessage);
+      browser.runtime
+        .sendMessage(createAlertFeedUnsubscribeMessage(subscriptionId))
+        .catch(() => {});
+    };
+  }, []);
+
+  return <Overlay alert={alert} />;
+}
+
+function createSubscriptionId(): string {
+  if ("randomUUID" in crypto) return crypto.randomUUID();
+  return `overlay-${Date.now()}-${Math.random()}`;
 }
