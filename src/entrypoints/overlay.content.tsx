@@ -4,23 +4,17 @@ import overlayCss from "@/assets/styles/overlay.css?inline";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { installFonts } from "@/assets/install-fonts";
-import { provideComparisonChannel } from "@/messaging/comparison-channel";
+import {
+  COMPARISON_PORT_NAME,
+  onComparison,
+} from "@/messaging/comparison-channel";
 import { connectWithReconnect } from "@/messaging/connect-with-reconnect";
-import { PortAdapter } from "@/messaging/port-adapter";
-import { ensureChainList } from "@/metadata/chain-info/ensure-chain-list";
-import { ensureTokenList } from "@/metadata/token-info/ensure-token-list";
+import { hydrateChainListFromStorage } from "@/metadata/chain-info/hydrate-from-storage";
+import { hydrateTokenListFromStorage } from "@/metadata/token-info/hydrate-from-storage";
 import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
 import { Overlay } from "@/ui/overlay/Overlay";
 import { createSnapshotStore } from "@/ui/overlay/snapshot-store";
-
-/**
- * Wire namespace of the port the overlay content script opens to the
- * background. The background's `runtime.onConnect` listener matches on this
- * name to wire `ComparisonChannel` for this tab — snapshots flow background→
- * overlay over this single port.
- */
-const COMPARISON_PORT_NAME = "maru:comparison";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -33,13 +27,13 @@ export default defineContentScript({
 
     installFonts();
 
-    // Hydrate the content-script's own copy of the metadata indices.
-    // Each JS context (background SW, content script) holds its own
-    // module-singleton — the background's hydration doesn't reach us here.
-    // Both calls are idempotent and read from `storage.local` first; the
-    // network fetch only fires if the cache is past its TTL.
-    void ensureTokenList();
-    void ensureChainList();
+    // Hydrate the content-script's own copy of the metadata indices from
+    // `storage.local` and subscribe to future updates. The background SW
+    // owns the network-refresh path (`ensureTokenList`/`ensureChainList`)
+    // and writes through to storage; the watchers set up here propagate
+    // those writes into our in-memory index.
+    void hydrateTokenListFromStorage();
+    void hydrateChainListFromStorage();
 
     const store = createSnapshotStore();
 
@@ -63,14 +57,11 @@ export default defineContentScript({
     );
 
     // Open a long-lived port to the background and (re-)wire the comparison
-    // channel provider against each fresh port. Snapshots emitted by the
-    // background orchestrator flow into the overlay's snapshot store, which
-    // `<Overlay>` reads via `useSyncExternalStore`.
+    // listener on each fresh port. Snapshots emitted by the orchestrator
+    // flow into the overlay's snapshot store, which `<Overlay>` reads via
+    // `useSyncExternalStore`.
     const reconnector = connectWithReconnect(COMPARISON_PORT_NAME, (port) => {
-      const adapter = new PortAdapter(port);
-      provideComparisonChannel(adapter, (snapshot) => {
-        store.set(snapshot);
-      });
+      onComparison(port, (snapshot) => store.set(snapshot));
     });
 
     const remove = () => {

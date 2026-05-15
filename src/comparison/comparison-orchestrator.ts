@@ -1,5 +1,4 @@
 import type { QuoteUpdate, SessionKey } from "@/arbiter/types";
-import type { QuoteReducer } from "@/quote-reducer/types";
 import { compareQuotes } from "./compare-quotes";
 import type {
   FetchBestQuoteOptions,
@@ -13,12 +12,22 @@ export type FetchBestQuote = (
   options?: FetchBestQuoteOptions,
 ) => Promise<FetchBestQuoteOutcome>;
 
+/**
+ * Default idle TTL — a session whose last ingest is older than this is
+ * evicted: in-flight fetch aborted, cache entry dropped.
+ *
+ * Generous on purpose: aggregator UIs can sit idle for a while between
+ * refreshes and we don't want to drop the user's last visible comparison
+ * mid-read.
+ */
+export const DEFAULT_SESSION_TTL_MS = 60_000;
+
 /** Options for `createComparisonOrchestrator`. */
 export type ComparisonOrchestratorOptions = {
-  /** Source of `added` / `updated` / `evicted` change events. */
-  reducer: QuoteReducer;
   /** Wire-side fetcher — defaults to `fetchBestQuote` in production wiring. */
   fetchBestQuote: FetchBestQuote;
+  /** Idle TTL (ms) override. Defaults to {@link DEFAULT_SESSION_TTL_MS}. */
+  ttlMs?: number;
 };
 
 /** Sink for `ComparisonSnapshot`s — one of these per active content-script port. */
@@ -27,20 +36,20 @@ export type ComparisonSnapshotListener = (snapshot: ComparisonSnapshot) => void;
 /** Handle returned by `createComparisonOrchestrator`. */
 export type ComparisonOrchestrator = {
   /**
+   * Apply an incoming `QuoteUpdate`. Out-of-order updates (sequence not
+   * strictly greater than the stored one for the same session) are dropped
+   * silently. Every accepted update resets the per-session TTL timer.
+   *
+   * Wired into the background's `onQuote` port handler.
+   */
+  ingest(update: QuoteUpdate): void;
+  /**
    * Subscribe a listener to receive every emitted `ComparisonSnapshot`. The
-   * returned function detaches the listener; it is safe to call multiple
-   * times. Each connected port wires its own listener and tears it down on
+   * returned function detaches the listener; safe to call multiple times.
+   * Each connected port wires its own listener and tears it down on
    * `port.onDisconnect` so background→content traffic stays point-cast.
    */
   subscribe(listener: ComparisonSnapshotListener): () => void;
-  /**
-   * Tear down: unsubscribes from the reducer, cancels every in-flight fetch,
-   * and drops every snapshot listener.
-   *
-   * Use during background-worker termination or in tests. After `dispose()`,
-   * no further snapshots will be emitted.
-   */
-  dispose(): void;
 };
 
 type CacheEntry =
@@ -49,40 +58,47 @@ type CacheEntry =
   | { status: "no_opinion" }
   | { status: "failed" };
 
+type Session = {
+  update: QuoteUpdate;
+  cache: CacheEntry;
+  controller: AbortController | null;
+  ttlHandle: ReturnType<typeof setTimeout>;
+};
+
 /**
- * Build a comparison orchestrator that translates reducer changes into
- * `ComparisonSnapshot`s on the comparison channel.
+ * Build a comparison orchestrator that owns per-session state and translates
+ * `QuoteUpdate`s on the quote channel into `ComparisonSnapshot`s on the
+ * comparison channel.
  *
  * @remarks
- * State machine, per `SessionKey`:
+ * State machine per `SessionKey`:
  *
- * - `added` → cache enters `pending`, kick off backend fetch with a
- *   per-session `AbortController`, emit a `pending` snapshot.
- * - `updated` with a cached entry → synchronously emit a snapshot derived
- *   from the cached entry against the new `QuoteUpdate`. No refetch (the
- *   backend's `QuoteRequest` is fully determined by the session key, so
- *   amount changes alone never change the response).
- * - `updated` without a cached entry (defensive — shouldn't happen if `added`
- *   always fires first) → treat as `added`.
- * - `evicted` → abort any in-flight fetch and drop the cache entry. No
- *   trailing snapshot — consumers can infer end-of-session from `update.sessionKey`.
- * - Fetch resolution → store outcome in cache and emit a fresh snapshot
- *   using the current best `QuoteUpdate` (or the original `update` if the
- *   session has been evicted, which we drop silently).
+ * - **First update** → cache enters `pending`, fetch starts under a per-session
+ *   `AbortController`, a `pending` snapshot is emitted, the TTL timer is armed.
+ * - **Subsequent update, stale sequence** → dropped silently.
+ * - **Subsequent update, new sequence** → emit a snapshot derived from the
+ *   cached entry against the new `QuoteUpdate` (no refetch — the backend's
+ *   `QuoteRequest` is fully determined by the session key, so amount changes
+ *   alone never change the response). TTL timer is reset.
+ * - **TTL elapsed** → abort in-flight fetch, drop cache entry, no trailing
+ *   snapshot. Consumers can infer end-of-session from gaps in `update.sequence`.
+ * - **Fetch resolution** → store outcome in cache, emit a fresh snapshot using
+ *   the current best `QuoteUpdate` (or drop silently if the session has been
+ *   evicted in the meantime).
  *
  * Aborted fetches do NOT emit a `failed` snapshot — they're intentional
- * cancellation, not failure.
+ * cancellation.
  */
 export function createComparisonOrchestrator(
   options: ComparisonOrchestratorOptions,
 ): ComparisonOrchestrator {
-  const cache = new Map<SessionKey, CacheEntry>();
-  const controllers = new Map<SessionKey, AbortController>();
+  const ttlMs = options.ttlMs ?? DEFAULT_SESSION_TTL_MS;
+  const sessions = new Map<SessionKey, Session>();
   const listeners = new Set<ComparisonSnapshotListener>();
 
   const emit = (snapshot: ComparisonSnapshot): void => {
-    // Iterate a snapshot of the set so a listener unsubscribing mid-fanout
-    // (e.g. its port just dropped) doesn't skip a sibling.
+    // Iterate a copy so a listener unsubscribing mid-fanout (e.g. its port
+    // just dropped) doesn't skip a sibling.
     for (const listener of [...listeners]) listener(snapshot);
   };
 
@@ -118,83 +134,85 @@ export function createComparisonOrchestrator(
     }
   };
 
-  const startFetch = (update: QuoteUpdate): void => {
-    const sessionKey = update.sessionKey;
-    cache.set(sessionKey, { status: "pending" });
-    emit({ status: "pending", update });
+  const evict = (sessionKey: SessionKey): void => {
+    const session = sessions.get(sessionKey);
+    if (!session) return;
+    session.controller?.abort();
+    clearTimeout(session.ttlHandle);
+    sessions.delete(sessionKey);
+  };
 
+  const armTtl = (sessionKey: SessionKey): ReturnType<typeof setTimeout> =>
+    setTimeout(() => evict(sessionKey), ttlMs);
+
+  const startFetch = (update: QuoteUpdate): AbortController => {
     const controller = new AbortController();
-    controllers.set(sessionKey, controller);
+    const sessionKey = update.sessionKey;
 
     void options
       .fetchBestQuote(buildRequest(update), { signal: controller.signal })
       .then((outcome) => {
-        // The fetch may resolve after eviction — drop silently.
-        if (controllers.get(sessionKey) !== controller) return;
-        controllers.delete(sessionKey);
+        const session = sessions.get(sessionKey);
+        // Session evicted, or replaced by a later fetch — drop silently.
+        if (!session || session.controller !== controller) return;
         if (outcome.status === "aborted") return;
 
-        const entry: CacheEntry =
+        const next: CacheEntry =
           outcome.status === "ok"
             ? { status: "ok", quote: outcome.quote }
             : outcome.status === "no_opinion"
               ? { status: "no_opinion" }
               : { status: "failed" };
-        cache.set(sessionKey, entry);
-
-        // Emit against the reducer's current best — the session may have
-        // been refined since `added` fired.
-        const current = options.reducer.get(sessionKey) ?? update;
-        emit(snapshotFor(current, entry));
+        session.cache = next;
+        session.controller = null;
+        emit(snapshotFor(session.update, next));
       })
       .catch(() => {
-        // `fetchBestQuote` never throws — outcomes are always returned — but
-        // belt-and-braces in case a custom `fetchImpl` injection misbehaves.
-        if (controllers.get(sessionKey) !== controller) return;
-        controllers.delete(sessionKey);
-        cache.set(sessionKey, { status: "failed" });
-        const current = options.reducer.get(sessionKey) ?? update;
-        emit({ status: "failed", update: current });
+        // `fetchBestQuote` returns outcomes rather than throwing — belt-and-
+        // braces for misbehaving test doubles.
+        const session = sessions.get(sessionKey);
+        if (!session || session.controller !== controller) return;
+        session.cache = { status: "failed" };
+        session.controller = null;
+        emit({ status: "failed", update: session.update });
       });
+
+    return controller;
   };
 
-  const unsubscribe = options.reducer.subscribe((change) => {
-    if (change.type === "added") {
-      startFetch(change.update);
-      return;
-    }
+  return {
+    ingest(update) {
+      const sessionKey = update.sessionKey;
+      const existing = sessions.get(sessionKey);
 
-    if (change.type === "updated") {
-      const entry = cache.get(change.sessionKey);
-      if (entry === undefined) {
-        // Defensive — reducer fired `updated` without a prior `added`.
-        startFetch(change.update);
+      if (existing === undefined) {
+        const controller = startFetch(update);
+        sessions.set(sessionKey, {
+          update,
+          cache: { status: "pending" },
+          controller,
+          ttlHandle: armTtl(sessionKey),
+        });
+        emit({ status: "pending", update });
         return;
       }
-      emit(snapshotFor(change.update, entry));
-      return;
-    }
 
-    // `evicted`
-    const controller = controllers.get(change.sessionKey);
-    if (controller !== undefined) {
-      controller.abort();
-      controllers.delete(change.sessionKey);
-    }
-    cache.delete(change.sessionKey);
-  });
+      if (update.sequence <= existing.update.sequence) {
+        // Out-of-order or duplicate — drop.
+        return;
+      }
 
-  return {
+      existing.update = update;
+      clearTimeout(existing.ttlHandle);
+      existing.ttlHandle = armTtl(sessionKey);
+      emit(snapshotFor(update, existing.cache));
+    },
+
     subscribe(listener) {
       listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    dispose() {
-      unsubscribe();
-      for (const controller of controllers.values()) controller.abort();
-      controllers.clear();
-      cache.clear();
-      listeners.clear();
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }

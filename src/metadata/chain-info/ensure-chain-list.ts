@@ -27,6 +27,11 @@ export type EnsureChainListOptions = {
  * Refresh the persisted chain list from the backend if the stored copy is
  * stale, then hydrate the in-memory index.
  *
+ * **Background-only.** Content scripts call
+ * {@link hydrateChainListFromStorage} instead — they pick up the result of
+ * this function via `storage.watch`, so the network fetch fires exactly
+ * once per install, not once per open tab.
+ *
  * Always hydrates the index from `storage.local`, even when the stored copy
  * is fresh — that's the path that warms the lookup map after a service-worker
  * restart. The network fetch is skipped when the cache is within

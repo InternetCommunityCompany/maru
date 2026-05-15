@@ -10,5 +10,6 @@ export const excludedSites = storage.defineItem<string[]>(
   "local:excludedSites",
   {
     fallback: [],
+    version: 1,
   },
 );

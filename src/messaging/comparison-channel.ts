@@ -1,42 +1,58 @@
-import { defineProxy } from "comctx";
 import type { ComparisonSnapshot } from "@/comparison/types";
-import { COMPARISON_CHANNEL_NAMESPACE } from "./namespace";
 
-class ComparisonChannel {
-  constructor(
-    private handler: (snapshot: ComparisonSnapshot) => void = () => {},
-  ) {}
-  async emit(snapshot: ComparisonSnapshot): Promise<void> {
-    this.handler(snapshot);
-  }
-}
+const TAG = "comparison" as const;
 
 /**
- * The comctx provider/injector pair for the maru comparison channel.
- *
- * Mirrors `provideQuoteChannel` / `injectQuoteChannel` but carries
- * `ComparisonSnapshot` from the background orchestrator to any consumer
- * (overlay, dev console, …). The producer is the orchestrator
- * (`createComparisonOrchestrator`); consumers wire their own
- * `provideComparisonChannel(adapter, handler)` calls in their own surface.
- *
- * - `provideComparisonChannel(adapter, handler)` is called on each consumer
- *   side and runs `handler` for every `ComparisonSnapshot` emitted by the
- *   orchestrator. Returns the underlying `ComparisonChannel` instance.
- * - `injectComparisonChannel(adapter)` is called on the producer side
- *   (background) and returns a proxy whose `emit(snapshot)` ferries snapshots
- *   to consumers.
- *
- * Heartbeat is enabled — over a long-lived `runtime.Port`, the heartbeat is
- * the canonical signal that the consumer is still alive. If the overlay
- * content script unloads mid-emit, the heartbeat fails and the pending RPC
- * rejects within `heartbeatTimeout` instead of hanging the orchestrator's
- * snapshot fanout. Callers still drop the returned promise
- * (`void channel.emit(s).catch(() => {})`) so a slow consumer doesn't stall
- * the producer.
+ * Port name the overlay content script opens to the background to receive
+ * `ComparisonSnapshot`s. Matched in the background's `runtime.onConnect`
+ * listener.
  */
-export const [provideComparisonChannel, injectComparisonChannel] = defineProxy(
-  (handler: (snapshot: ComparisonSnapshot) => void = () => {}) =>
-    new ComparisonChannel(handler),
-  { namespace: COMPARISON_CHANNEL_NAMESPACE, heartbeatCheck: true },
-);
+export const COMPARISON_PORT_NAME = "maru:comparison";
+
+/**
+ * Wire envelope on the comparison channel. Tagged so consumers can cheaply
+ * filter foreign traffic on the port.
+ */
+export type ComparisonMessage = {
+  readonly __maru: typeof TAG;
+  readonly snapshot: ComparisonSnapshot;
+};
+
+/** Type guard for {@link ComparisonMessage}. */
+export const isComparisonMessage = (data: unknown): data is ComparisonMessage =>
+  typeof data === "object" &&
+  data !== null &&
+  (data as { __maru?: unknown }).__maru === TAG;
+
+/**
+ * Post a {@link ComparisonSnapshot} from the background to an overlay port.
+ *
+ * Swallows `postMessage` failures: the port can disconnect between the last
+ * `onDisconnect` check and this call. The owning subscription is torn down
+ * by the disconnect listener, so there is nothing to surface here.
+ */
+export const emitComparison = (
+  port: Browser.runtime.Port,
+  snapshot: ComparisonSnapshot,
+): void => {
+  const message: ComparisonMessage = { __maru: TAG, snapshot };
+  try {
+    port.postMessage(message);
+  } catch {
+    // Port disconnected mid-call — onDisconnect will run and unsubscribe.
+  }
+};
+
+/**
+ * Subscribe `handler` to {@link ComparisonSnapshot}s arriving on a
+ * `runtime.Port` (overlay side). Non-comparison traffic is dropped silently.
+ * The listener dies with the port.
+ */
+export const onComparison = (
+  port: Browser.runtime.Port,
+  handler: (snapshot: ComparisonSnapshot) => void,
+): void => {
+  port.onMessage.addListener((raw: unknown) => {
+    if (isComparisonMessage(raw)) handler(raw.snapshot);
+  });
+};

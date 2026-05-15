@@ -1,42 +1,28 @@
 import { connectWithReconnect, type Reconnector } from "./connect-with-reconnect";
-import { isChannelMessage } from "./is-channel-message";
+import { QUOTE_PORT_NAME, isQuoteMessage } from "./quote-channel";
 
 /**
- * Wire namespace of the port the ISOLATED-world relay opens to the background.
+ * Bridges window-postMessage traffic (MAIN-world) to a long-lived
+ * `runtime.Port` to the background inside the ISOLATED content script.
  *
- * Background-side `runtime.onConnect` matches on this name to wire
- * `QuoteChannel` for the connecting tab. Exported so the background
- * entrypoint can refer to the same constant.
- */
-export const QUOTE_RELAY_PORT_NAME = "maru:quote";
-
-/**
- * Bridges window-postMessage traffic (MAIN-world) and a long-lived
- * `runtime.Port` (background) inside the ISOLATED content script.
+ * The quote channel is strictly one-way MAIN → background, so this relay
+ * only forwards window → port. Page scripts and other extensions
+ * `postMessage`-ing on the same window are filtered out by
+ * {@link isQuoteMessage}.
  *
- * This is the second hop of the comctx connection: the channel logically
- * spans MAIN ↔ BACKGROUND, with this function blindly forwarding messages
- * (filtered by `isChannelMessage`) in both directions. It does not parse or
- * inspect payloads.
+ * The port is reconnected automatically when the service worker restarts via
+ * {@link connectWithReconnect}. The window-message listener is attached once
+ * at startup and posts through whichever port is currently active.
  *
- * The port is reconnected automatically when the service worker restarts,
- * via {@link connectWithReconnect}. The window-message listener is attached
- * once at startup and forwards through whichever port is currently active.
- *
- * Idempotent for our purposes — call once from `content.ts` at
- * `document_start`. Multiple calls would attach duplicate listeners and
- * double-deliver messages. Returns a {@link Reconnector} so callers can stop
- * the loop on `ctx.onInvalidated`.
+ * Call once from `content.ts` at `document_start`; multiple calls would
+ * double-deliver. Returns a {@link Reconnector} so callers can stop the loop
+ * on `ctx.onInvalidated`.
  */
 export function startContentRelay(): Reconnector {
   let activePort: Browser.runtime.Port | null = null;
 
-  const reconnector = connectWithReconnect(QUOTE_RELAY_PORT_NAME, (port) => {
+  const reconnector = connectWithReconnect(QUOTE_PORT_NAME, (port) => {
     activePort = port;
-    port.onMessage.addListener((message: unknown) => {
-      if (!isChannelMessage(message)) return;
-      window.postMessage(message, window.location.origin);
-    });
     port.onDisconnect.addListener(() => {
       if (activePort === port) activePort = null;
     });
@@ -44,14 +30,14 @@ export function startContentRelay(): Reconnector {
 
   window.addEventListener("message", (event) => {
     if (event.source !== window) return;
-    if (!isChannelMessage(event.data)) return;
+    if (!isQuoteMessage(event.data)) return;
     const port = activePort;
-    if (port === null) return; // dropped while reconnecting — caller retries
+    if (port === null) return; // dropped while reconnecting — next emission retries
     try {
       port.postMessage(event.data);
     } catch {
-      // Port broken between the null check and postMessage —
-      // onDisconnect will fire and reconnect.
+      // Port broke between the null check and postMessage —
+      // onDisconnect will fire and the reconnect loop will re-establish.
     }
   });
 

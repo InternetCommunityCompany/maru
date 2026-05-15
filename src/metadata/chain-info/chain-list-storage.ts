@@ -13,5 +13,6 @@ export const chainList = storage.defineItem<StoredChainList>(
   "local:chainList",
   {
     fallback: { data: { chains: [] }, fetchedAt: 0 },
+    version: 1,
   },
 );

@@ -5,11 +5,11 @@ type Listener = () => void;
 /**
  * Minimal external store for the current `ComparisonSnapshot`.
  *
- * Lives at module scope so that the `provideComparisonChannel` subscription —
- * which is wired once at content-script boot, outside React — can push
- * snapshots into a place the `Overlay` component reads via
- * `useSyncExternalStore`. Holds only the latest snapshot; subscribers re-read
- * the current value on each change notification.
+ * Lives at module scope so that the `onComparison` subscription — which is
+ * wired once at content-script boot, outside React — can push snapshots
+ * into a place the `Overlay` component reads via `useSyncExternalStore`.
+ * Holds only the latest snapshot; subscribers re-read the current value on
+ * each change notification.
  *
  * The store is intentionally untyped beyond `ComparisonSnapshot | null` —
  * mapping to an `OverlayView` happens at read time inside the component so

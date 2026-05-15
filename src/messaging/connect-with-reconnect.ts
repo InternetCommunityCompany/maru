@@ -1,8 +1,7 @@
 /**
  * Callback invoked every time a fresh `runtime.Port` is established, including
- * after a reconnect. Receives the raw port so the caller can wrap it in a
- * `PortAdapter` (for comctx wiring) or read/write to it directly (for the
- * window-↔-port relay).
+ * after a reconnect. Receives the raw port so the caller can attach
+ * `onMessage` / `onDisconnect` listeners or forward traffic through it.
  */
 export type WireFn = (port: Browser.runtime.Port) => void;
 
@@ -46,9 +45,9 @@ export type ConnectOptions = {
  *
  * @remarks
  * `wire` is called once per successful `connect()`, including on every
- * reconnect, with a brand-new port. The previous port (and any adapter or
- * provider/injector bound to it) is dropped; the caller's `wire` should
- * re-create those against the new port.
+ * reconnect, with a brand-new port. The previous port (and any listeners
+ * attached to it) is dropped; the caller's `wire` should re-attach against
+ * the new port.
  *
  * The backoff sequence escalates on each consecutive disconnect and resets
  * to 0 once a connection has lasted `stableAfterMs`, so a transient SW

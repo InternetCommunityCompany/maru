@@ -7,8 +7,8 @@
  * Adding a new field is safe without a versioned migration as long as the
  * default for that field is filled in at read-time
  * ({@link SETTINGS_DEFAULTS} merged inside `useSettings`). Renaming or
- * changing the type of an existing field requires bumping `version` and
- * supplying a migration.
+ * changing the type of an existing field requires bumping `SETTINGS_VERSION`
+ * and supplying a migration entry.
  */
 export interface Settings {
   /** Play a coin chime when savings on a single swap exceed $5. */
@@ -27,7 +27,13 @@ export const SETTINGS_DEFAULTS: Settings = {
   threshold: 1,
 };
 
-export const settings = storage.defineItem<Settings>(
-  "local:settings",
-  { fallback: SETTINGS_DEFAULTS },
-);
+/**
+ * Current schema version. Bump when renaming or retyping an existing field
+ * and add a `migrations[next]` entry below.
+ */
+export const SETTINGS_VERSION = 1;
+
+export const settings = storage.defineItem<Settings>("local:settings", {
+  fallback: SETTINGS_DEFAULTS,
+  version: SETTINGS_VERSION,
+});

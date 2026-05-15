@@ -57,10 +57,10 @@ export const DEFAULT_FETCH_TIMEOUT_MS = 8_000;
  * - Anything else (non-2xx, network, timeout, JSON parse failure) → `failed`
  * - `signal.aborted` (either pre-call or during the request) → `aborted`
  *
- * The response body is NOT schema-validated against `BestQuote` beyond the
- * presence of `provider` and `amountOut` — the backend owns the schema and
- * this client is a thin transport. Adding Zod validation here would duplicate
- * the backend's contract.
+ * Response bodies are validated against the {@link BestQuote} shape at this
+ * boundary by {@link isBestQuote} — a malformed response (e.g. backend
+ * regression that ships `fetchedAt: "now"`) becomes a `failed` outcome
+ * here instead of exploding at render time.
  */
 export async function fetchBestQuote(
   req: QuoteRequest,
@@ -74,7 +74,7 @@ export async function fetchBestQuote(
   const timeoutController = new AbortController();
   const timeoutHandle = setTimeout(() => timeoutController.abort(), timeoutMs);
   const signal = options.signal
-    ? anySignal([options.signal, timeoutController.signal])
+    ? AbortSignal.any([options.signal, timeoutController.signal])
     : timeoutController.signal;
 
   try {
@@ -90,14 +90,11 @@ export async function fetchBestQuote(
       return { status: "failed", reason: `http_${response.status}` };
     }
 
-    const body = (await response.json()) as Partial<BestQuote>;
-    if (
-      typeof body.provider !== "string" ||
-      typeof body.amountOut !== "string"
-    ) {
+    const body: unknown = await response.json();
+    if (!isBestQuote(body)) {
       return { status: "failed", reason: "malformed_response" };
     }
-    return { status: "ok", quote: body as BestQuote };
+    return { status: "ok", quote: body };
   } catch (err) {
     if (options.signal?.aborted) return { status: "aborted" };
     if (timeoutController.signal.aborted) {
@@ -112,21 +109,30 @@ export async function fetchBestQuote(
   }
 }
 
-// Combines multiple AbortSignals into a single signal that aborts when any
-// input does. Standard `AbortSignal.any` is missing in some service-worker
-// runtimes, so we open-code it.
-const anySignal = (signals: AbortSignal[]): AbortSignal => {
-  const controller = new AbortController();
-  const onAbort = (event: Event) => {
-    const target = event.target as AbortSignal;
-    controller.abort(target.reason);
-  };
-  for (const s of signals) {
-    if (s.aborted) {
-      controller.abort(s.reason);
-      return controller.signal;
-    }
-    s.addEventListener("abort", onAbort, { once: true });
+const AMOUNT_RE = /^\d+$/u;
+
+// Mirrors the BestQuote type from maru-backend/src/types.ts. Kept in sync by
+// hand — adding zod here just to validate one response shape would dwarf the
+// rule it enforces.
+const isBestQuote = (body: unknown): body is BestQuote => {
+  if (typeof body !== "object" || body === null) return false;
+  const b = body as Record<string, unknown>;
+  if (typeof b.provider !== "string" || b.provider.length === 0) return false;
+  if (typeof b.amountOut !== "string" || !AMOUNT_RE.test(b.amountOut)) {
+    return false;
   }
-  return controller.signal;
+  if (typeof b.fetchedAt !== "number" || !Number.isFinite(b.fetchedAt)) {
+    return false;
+  }
+  if (b.routing !== undefined && typeof b.routing !== "string") return false;
+  if (b.gas !== undefined) {
+    if (typeof b.gas !== "object" || b.gas === null) return false;
+    const g = b.gas as Record<string, unknown>;
+    if (typeof g.units !== "string" || !AMOUNT_RE.test(g.units)) return false;
+    if (g.usd !== undefined && (typeof g.usd !== "number" || !Number.isFinite(g.usd))) {
+      return false;
+    }
+  }
+  // `raw` is the opaque pass-through bag — accept anything, including absent.
+  return true;
 };

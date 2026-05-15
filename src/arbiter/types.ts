@@ -86,8 +86,9 @@ export type QuoteSession = {
  * MAIN-world producer to the background reducer.
  *
  * One session per `sessionKey`. Within a session, `sequence` is monotonic;
- * consumers (`src/quote-reducer`) replace prior state by `sessionKey` and drop
- * any arrival whose `sequence` is not strictly greater than the stored one.
+ * consumers (`createComparisonOrchestrator`) replace prior state by
+ * `sessionKey` and drop any arrival whose `sequence` is not strictly greater
+ * than the stored one.
  * The arbiter is the union owner; the channel imports this type rather than
  * the other way around.
  *

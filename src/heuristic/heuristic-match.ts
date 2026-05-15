@@ -83,16 +83,6 @@ export function heuristicMatch(
   if (chainIn !== null && chainOut === null) chainOut = chainIn;
   if (chainOut !== null && chainIn === null) chainIn = chainOut;
 
-  console.log({
-    event,
-    tokenIn,
-    tokenOut,
-    amountIn,
-    amountOut,
-    chainIn,
-    chainOut,
-  });
-
   if (
     tokenIn === null ||
     tokenOut === null ||

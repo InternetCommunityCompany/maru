@@ -13,5 +13,6 @@ export const tokenList = storage.defineItem<StoredTokenList>(
   "local:tokenList",
   {
     fallback: { data: { tokens: [] }, fetchedAt: 0 },
+    version: 1,
   },
 );
