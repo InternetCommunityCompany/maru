@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { cx } from "@/ui/cx";
-import type { SwapMode } from "./types";
+import type { AlertSwapMode } from "@/alert-feed/types";
 import { Wordmark } from "./Wordmark";
 
 /** Props for the {@link ExecutingCard} component. */
 export interface ExecutingCardProps {
   /** Whether the execution is for a swap or a bridge. */
-  mode: SwapMode;
+  mode: AlertSwapMode;
   /** Route label selected by the alert feed. */
   route: string;
   /** Dismiss handler invoked when the user closes the card mid-flight. */

@@ -1,7 +1,7 @@
 import { createArbiter } from "@/arbiter/arbiter";
 import { installInterceptors } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "@/heuristic/heuristic-match";
-import { postQuoteUpdate } from "@/messaging/quote-update-message";
+import { QUOTE_UPDATE_MESSAGE_TYPE } from "@/messaging/quote-update-message";
 import { matchTemplates } from "@/template-engine/match-templates";
 import { registry } from "@/templates/registry";
 
@@ -12,7 +12,10 @@ export default defineContentScript({
   main() {
     const arbiter = createArbiter({
       emit: (update) => {
-        postQuoteUpdate(update);
+        window.postMessage(
+          { type: QUOTE_UPDATE_MESSAGE_TYPE, update },
+          window.location.origin,
+        );
       },
     });
 

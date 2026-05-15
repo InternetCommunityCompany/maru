@@ -1,10 +1,10 @@
+import type { AlertSwapMode } from "@/alert-feed/types";
 import { Wordmark } from "./Wordmark";
-import type { SwapMode } from "./types";
 
 /** Props for the {@link FailedCard} component. */
 export interface FailedCardProps {
   /** Whether the failed attempt was a swap or bridge. */
-  mode: SwapMode;
+  mode: AlertSwapMode;
   /** User cancelled the retry flow. */
   onDismiss: () => void;
   /** User wants to retry — typically transitions back to the executing card. */

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AlertCardViewModel, AlertViewModel } from "@/alert-feed/types";
+import { useEffect, useState, type ReactNode } from "react";
+import type { AlertViewModel } from "@/alert-feed/types";
 import { BetterRateCard } from "./BetterRateCard";
 import { ExecutingCard } from "./ExecutingCard";
 import { FailedCard } from "./FailedCard";
@@ -32,10 +32,7 @@ export function Overlay({ alert }: OverlayProps) {
     setLocalState("alert");
   }, [sessionKey]);
 
-  const isDismissed = useMemo(
-    () => sessionKey !== null && dismissedSessions.has(sessionKey),
-    [dismissedSessions, sessionKey],
-  );
+  const isDismissed = sessionKey !== null && dismissedSessions.has(sessionKey);
 
   if (!alert || isDismissed) return null;
 
@@ -83,24 +80,16 @@ export function Overlay({ alert }: OverlayProps) {
         );
         break;
       }
-      body = renderAlertCard(alert.card, dismiss, () => setLocalState("executing"));
+      body = (
+        <BetterRateCard
+          card={alert.card}
+          onDismiss={dismiss}
+          onAccept={() => setLocalState("executing")}
+          onOpenRoute={dismiss}
+        />
+      );
       break;
   }
 
   return <div className="overlay">{body}</div>;
-}
-
-function renderAlertCard(
-  card: AlertCardViewModel,
-  dismiss: () => void,
-  accept: () => void,
-): ReactNode {
-  return (
-    <BetterRateCard
-      card={card}
-      onDismiss={dismiss}
-      onAccept={accept}
-      onOpenRoute={dismiss}
-    />
-  );
 }

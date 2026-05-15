@@ -10,10 +10,8 @@ export type BackendQuoteClient = (
   update: QuoteUpdate,
 ) => Promise<BackendQuote | null>;
 
-type QuoteFetch = (input: string, init?: RequestInit) => Promise<Response>;
-
 export function createBackendQuoteClient(
-  fetchImpl: QuoteFetch = fetch,
+  fetchImpl: (input: string, init?: RequestInit) => Promise<Response> = fetch,
   baseUrl: string = BACKEND_URL,
 ): BackendQuoteClient {
   return async (update) => {

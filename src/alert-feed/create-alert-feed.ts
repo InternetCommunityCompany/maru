@@ -4,19 +4,19 @@ import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
 import type { QuoteReducer, QuoteReducerChange, QuoteReducerOptions } from "@/quote-reducer/types";
 import { toAlertView } from "./to-alert-view";
 import {
-  createAlertFeedChangeMessage,
+  ALERT_FEED_CHANGE_MESSAGE_TYPE,
   type AlertFeedChange,
   type AlertFeedChangeMessage,
   type AlertFeedSubscribeResponse,
   type AlertViewModel,
 } from "./types";
 
-export type SendAlertFeedMessage = (
+type SendAlertFeedMessage = (
   tabId: number,
   message: AlertFeedChangeMessage,
 ) => void | Promise<void>;
 
-export type AlertFeed = {
+type AlertFeed = {
   ingest(tabId: number, update: QuoteUpdate): void;
   subscribe(tabId: number, subscriptionId: string): AlertFeedSubscribeResponse;
   unsubscribe(subscriptionId: string): void;
@@ -24,7 +24,7 @@ export type AlertFeed = {
   dispose(): void;
 };
 
-export type AlertFeedOptions = {
+type AlertFeedOptions = {
   reducerOptions?: QuoteReducerOptions;
   sendToTab: SendAlertFeedMessage;
   quoteClient?: BackendQuoteClient;
@@ -134,7 +134,11 @@ export function createAlertFeed({
   const emit = (tabId: number, change: AlertFeedChange) => {
     for (const [subscriptionId, subscribedTabId] of subscriptions) {
       if (subscribedTabId !== tabId) continue;
-      const message = createAlertFeedChangeMessage(subscriptionId, change);
+      const message: AlertFeedChangeMessage = {
+        type: ALERT_FEED_CHANGE_MESSAGE_TYPE,
+        subscriptionId,
+        change,
+      };
       Promise.resolve(sendToTab(tabId, message)).catch(() => {
         subscriptions.delete(subscriptionId);
         const state = tabs.get(tabId);

@@ -370,7 +370,7 @@
   margin-top: 4px;
 }
 
-/* Compact pill (scanning / all-good / working) */
+/* Compact pill (scanning / all-good) */
 .ol-pill {
   display: flex;
   align-items: center;
@@ -399,9 +399,6 @@
 }
 .ol-pill.scanning {
   background: var(--gold-soft);
-}
-.ol-pill.working {
-  background: var(--surface-2);
 }
 .ol-pill-maru {
   width: 36px;

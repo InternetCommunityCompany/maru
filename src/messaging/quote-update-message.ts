@@ -2,18 +2,10 @@ import type { QuoteUpdate } from "@/arbiter/types";
 
 export const QUOTE_UPDATE_MESSAGE_TYPE = "__maru_quote_update__";
 
-export type QuoteUpdateMessage = {
+type QuoteUpdateMessage = {
   type: typeof QUOTE_UPDATE_MESSAGE_TYPE;
   update: QuoteUpdate;
 };
-
-export function createQuoteUpdateMessage(update: QuoteUpdate): QuoteUpdateMessage {
-  return { type: QUOTE_UPDATE_MESSAGE_TYPE, update };
-}
-
-export function postQuoteUpdate(update: QuoteUpdate): void {
-  window.postMessage(createQuoteUpdateMessage(update), window.location.origin);
-}
 
 export function isQuoteUpdateMessage(value: unknown): value is QuoteUpdateMessage {
   if (!isRecord(value)) return false;

@@ -4,8 +4,8 @@ import overlayCss from "@/assets/styles/overlay.css?inline";
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import {
-  createAlertFeedSubscribeMessage,
-  createAlertFeedUnsubscribeMessage,
+  ALERT_FEED_SUBSCRIBE_MESSAGE_TYPE,
+  ALERT_FEED_UNSUBSCRIBE_MESSAGE_TYPE,
   isAlertFeedChangeMessage,
   isAlertFeedSubscribeResponse,
   type AlertViewModel,
@@ -22,7 +22,8 @@ export default defineContentScript({
   // ourselves inside the shadow root — no auto-injection wanted.
   cssInjectionMode: "manual",
   async main(ctx) {
-    if (await isHostExcluded()) return;
+    const excludedHosts = await excludedSites.getValue();
+    if (excludedHosts.includes(canonicaliseHost(location.hostname))) return;
 
     installFonts();
 
@@ -62,16 +63,14 @@ export default defineContentScript({
   },
 });
 
-async function isHostExcluded(): Promise<boolean> {
-  const list = await excludedSites.getValue();
-  return list.includes(canonicaliseHost(location.hostname));
-}
-
 function LiveOverlay() {
   const [alert, setAlert] = useState<AlertViewModel | null>(null);
 
   useEffect(() => {
-    const subscriptionId = createSubscriptionId();
+    const subscriptionId =
+      "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `overlay-${Date.now()}-${Math.random()}`;
     let cancelled = false;
 
     const onMessage = (message: unknown) => {
@@ -82,7 +81,7 @@ function LiveOverlay() {
 
     browser.runtime.onMessage.addListener(onMessage);
     browser.runtime
-      .sendMessage(createAlertFeedSubscribeMessage(subscriptionId))
+      .sendMessage({ type: ALERT_FEED_SUBSCRIBE_MESSAGE_TYPE, subscriptionId })
       .then((response) => {
         if (cancelled || !isAlertFeedSubscribeResponse(response)) return;
         setAlert(response.view);
@@ -95,15 +94,10 @@ function LiveOverlay() {
       cancelled = true;
       browser.runtime.onMessage.removeListener(onMessage);
       browser.runtime
-        .sendMessage(createAlertFeedUnsubscribeMessage(subscriptionId))
+        .sendMessage({ type: ALERT_FEED_UNSUBSCRIBE_MESSAGE_TYPE, subscriptionId })
         .catch(() => {});
     };
   }, []);
 
   return <Overlay alert={alert} />;
-}
-
-function createSubscriptionId(): string {
-  if ("randomUUID" in crypto) return crypto.randomUUID();
-  return `overlay-${Date.now()}-${Math.random()}`;
 }

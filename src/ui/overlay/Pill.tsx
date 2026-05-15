@@ -3,7 +3,7 @@ import type { MaruState } from "@/ui/mascot/types";
 import type { ReactNode } from "react";
 
 /** The compact pill variants surfaced from the overlay state machine. */
-export type PillVariant = "scanning" | "all-good" | "working";
+export type PillVariant = "scanning" | "all-good";
 
 /** Props for the {@link Pill} component. */
 export interface PillProps {
@@ -44,15 +44,10 @@ const VARIANTS: Record<PillVariant, VariantConfig> = {
       </>
     ),
   },
-  working: {
-    className: "ol-pill working",
-    mascot: "searching",
-    body: () => <>Working… don&apos;t refresh</>,
-  },
 };
 
 /**
- * Compact pill used for quiet overlay states (scanning, best-rate, working).
+ * Compact pill used for quiet overlay states (scanning, best-rate).
  * Three variants share layout but differ in mascot, copy, and animation.
  */
 export function Pill({ variant, sourceCount, onClick }: PillProps) {

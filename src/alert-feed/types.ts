@@ -45,7 +45,7 @@ export type AlertViewModel =
       card: AlertCardViewModel;
     };
 
-export type AlertFeedChangeType = "added" | "updated" | "evicted";
+type AlertFeedChangeType = "added" | "updated" | "evicted";
 
 export type AlertFeedChange = {
   type: AlertFeedChangeType;
@@ -53,12 +53,12 @@ export type AlertFeedChange = {
   view: AlertViewModel | null;
 };
 
-export type AlertFeedSubscribeMessage = {
+type AlertFeedSubscribeMessage = {
   type: typeof ALERT_FEED_SUBSCRIBE_MESSAGE_TYPE;
   subscriptionId: string;
 };
 
-export type AlertFeedUnsubscribeMessage = {
+type AlertFeedUnsubscribeMessage = {
   type: typeof ALERT_FEED_UNSUBSCRIBE_MESSAGE_TYPE;
   subscriptionId: string;
 };
@@ -72,25 +72,6 @@ export type AlertFeedChangeMessage = {
   subscriptionId: string;
   change: AlertFeedChange;
 };
-
-export function createAlertFeedSubscribeMessage(
-  subscriptionId: string,
-): AlertFeedSubscribeMessage {
-  return { type: ALERT_FEED_SUBSCRIBE_MESSAGE_TYPE, subscriptionId };
-}
-
-export function createAlertFeedUnsubscribeMessage(
-  subscriptionId: string,
-): AlertFeedUnsubscribeMessage {
-  return { type: ALERT_FEED_UNSUBSCRIBE_MESSAGE_TYPE, subscriptionId };
-}
-
-export function createAlertFeedChangeMessage(
-  subscriptionId: string,
-  change: AlertFeedChange,
-): AlertFeedChangeMessage {
-  return { type: ALERT_FEED_CHANGE_MESSAGE_TYPE, subscriptionId, change };
-}
 
 export function isAlertFeedSubscribeMessage(
   value: unknown,
