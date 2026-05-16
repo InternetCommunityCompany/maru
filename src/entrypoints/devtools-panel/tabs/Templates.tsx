@@ -24,13 +24,19 @@ export function Templates({ stream }: Props) {
       {rows.map((t) => {
         const matches = t.evaluations.filter((e) => e.result === "match")
           .length;
+        const lastHit = t.evaluations.length > 0
+          ? t.evaluations[t.evaluations.length - 1]?.at
+          : undefined;
         return (
           <li key={t.templateId}>
             <details>
               <summary>
                 {t.templateId}
-                {t.version ? ` (${t.version})` : ""} — {t.evaluations.length}{" "}
-                evals, {matches} matches
+                {t.version ? ` (${t.version})` : ""} — last hit{" "}
+                {lastHit !== undefined
+                  ? new Date(lastHit).toLocaleTimeString()
+                  : "never"}{" "}
+                ({t.evaluations.length} evals, {matches} matches)
                 {t.hostMatch ? ` · host ${t.hostMatch}` : ""}
               </summary>
               <TemplateEvalList evaluations={t.evaluations} />
