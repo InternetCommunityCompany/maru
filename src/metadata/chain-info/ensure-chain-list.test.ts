@@ -10,6 +10,7 @@ const eth = {
   name: "Ethereum Mainnet",
   shortName: "eth",
   iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
 };
 
 const sample: ChainList = { chains: [eth] };

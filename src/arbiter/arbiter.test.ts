@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { InterceptedEvent } from "@/interceptors/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { createArbiter } from "./arbiter";
 import { CONFIDENCE, type QuoteUpdate } from "./types";
 

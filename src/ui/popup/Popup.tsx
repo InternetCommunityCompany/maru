@@ -1,6 +1,6 @@
 import { useExcludedSites } from "@/storage/use-excluded-sites";
 import { DEMO_LIFETIME } from "@/ui/demo-data";
-import type { MaruState } from "@/ui/mascot/types";
+import type { MaruState } from "@/ui/mascot/state-sources";
 import { LifetimeSavings } from "./LifetimeSavings";
 import { MasterToggle } from "./MasterToggle";
 import { PopupFooter } from "./PopupFooter";

@@ -1,5 +1,5 @@
 import { Maru } from "@/ui/mascot/Maru";
-import type { SwapMode } from "./types";
+import type { SwapMode } from "./ExecutingCard";
 import { Wordmark } from "./Wordmark";
 
 /** Props for the {@link SuccessCard} component. */

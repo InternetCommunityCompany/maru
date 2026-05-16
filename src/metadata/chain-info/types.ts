@@ -1,51 +1,31 @@
 /**
- * One chain's metadata as exposed to consumers via {@link getChainInfo}.
- *
- * Mirrors the slimmed `/api/chainlist` payload trimmed to what MARU surfaces:
- * `name` and `shortName` feed the human label, `iconUrl` feeds the chain
- * badge on the alert overlay's `TokenChip` (and any other surface that wants
- * an icon).
- *
- * `iconUrl` is the resolved URL the backend ships — `null` when upstream had
- * no icon for the chain. The extension renders it as-is; the backend handles
- * the URL-vs-slug rewriting.
+ * One chain's metadata as exposed via {@link getChainInfo} and as it appears
+ * on the wire from `GET /api/chainlist`. `iconUrl` is the resolved URL the
+ * backend ships; `null` when upstream had no icon. `nativeCurrency` lets
+ * {@link getTokenInfo} synthesise a `TokenInfo` for the chain's native gas
+ * token (Uniswap's tokenlist is ERC-20–only).
  */
 export type ChainInfo = {
   chainId: number;
   name: string;
   shortName: string;
   iconUrl: string | null;
+  nativeCurrency: NativeCurrency | null;
 };
 
-/**
- * Backend response shape for `GET /api/chainlist`. Slim projection of the
- * upstream `chainlist.org/rpcs.json` carrying only the fields the extension
- * reads, with the icon already resolved to a renderable URL.
- */
-export type ChainList = {
-  chains: ChainListEntry[];
-};
-
-/**
- * One chain's slimmed entry as it appears on the wire.
- *
- * Identical shape to {@link ChainInfo} — the backend is the authority on
- * icon URL resolution, so the entry needs no further rewriting client-side.
- */
-export type ChainListEntry = {
-  chainId: number;
+/** The chain's native gas token (ETH on mainnet, MATIC on Polygon, …). */
+export type NativeCurrency = {
   name: string;
-  shortName: string;
-  iconUrl: string | null;
+  symbol: string;
+  decimals: number;
 };
 
-/**
- * Persisted blob stored in `storage.local`.
- *
- * `data` is the raw backend payload kept verbatim. `fetchedAt` is the
- * epoch-ms timestamp of the most recent successful refresh — used by
- * {@link ensureChainList} to decide whether the cache is stale.
- */
+/** Backend response shape for `/api/chainlist`. */
+export type ChainList = {
+  chains: ChainInfo[];
+};
+
+/** `data` is the raw backend payload; `fetchedAt` drives the TTL check. */
 export type StoredChainList = {
   data: ChainList;
   fetchedAt: number;

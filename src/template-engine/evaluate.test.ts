@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluate } from "./evaluate";
-import type { EvalContext } from "./types";
+import type { EvalContext } from "./build-eval-context";
 
 const ctx = (overrides: Partial<EvalContext>): EvalContext =>
   overrides as EvalContext;

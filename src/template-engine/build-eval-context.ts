@@ -1,6 +1,40 @@
-import type { InterceptedEvent } from "@/interceptors/types";
-import type { EvalContext } from "./types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { tryParseJson } from "./try-parse-json";
+
+/**
+ * The data scope a template's path expressions evaluate against.
+ *
+ * Path expressions reference top-level keys via a `$source` prefix
+ * (`$request`, `$response`, `$url`, `$method`, `$params`, `$result`,
+ * `$item`). For HTTP events the engine binds `request`/`response`/`url`/
+ * `method`; for ethereum events it binds `params`/`result`/`method`. Keys
+ * not bound for the current source resolve to `undefined`.
+ */
+export type EvalContext = {
+  /** HTTP request body, JSON-decoded. Bound for fetch/xhr events. */
+  request?: unknown;
+  /** HTTP response body, JSON-decoded. Bound for fetch/xhr events. */
+  response?: unknown;
+  /** URL components. Bound for fetch/xhr events. */
+  url?: {
+    host: string;
+    path: string;
+    /** Path split on `/` with empty parts removed: `/quote/v7/1` → `["quote", "v7", "1"]`. */
+    segments: string[];
+    full: string;
+    search: Record<string, string>;
+  };
+  /** HTTP verb (fetch/xhr) or RPC method name (ethereum). */
+  method?: string;
+  /** RPC params (typically an array). Bound for ethereum events. */
+  params?: unknown;
+  /** RPC result. Bound for ethereum events. */
+  result?: unknown;
+  /** ABI-decoded function args, keyed by parameter name. Bound when an ethereum-source template specifies `match.abi` and decoding succeeds. */
+  decoded?: Record<string, unknown>;
+  /** Current iterated element. Bound only inside an `iterate` step. */
+  item?: unknown;
+};
 
 /**
  * Builds the data scope for a template against any `InterceptedEvent`.

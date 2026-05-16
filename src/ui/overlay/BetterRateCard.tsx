@@ -1,12 +1,17 @@
+import type { TokenSide } from "./snapshot-to-view";
 import { TokenChip } from "./TokenChip";
-import { TOKEN_CATALOGUE } from "./tokens";
-import type { SwapMode } from "./types";
 import { Wordmark } from "./Wordmark";
 
 /** Props for the {@link BetterRateCard} component. */
 export interface BetterRateCardProps {
-  /** Whether the better rate is on a single-chain swap or a bridge. */
-  mode: SwapMode;
+  /** Relative delta, percent. `null` when the dapp's `amountOut` was zero. */
+  percentage: number | null;
+  /** Provider / route label shown on the headline. */
+  route: string;
+  /** Source-token side of the trade. */
+  src: TokenSide;
+  /** Destination-token side of the trade — highlighted (the saved-on leg). */
+  dst: TokenSide;
   /** User dismissed the overlay (× icon). */
   onDismiss: () => void;
   /** User accepted MARU's better route. */
@@ -15,19 +20,34 @@ export interface BetterRateCardProps {
   onOpenRoute: () => void;
 }
 
+/** Format percent for headline display. `null` → "—". */
+function formatPercent(percentage: number | null): string {
+  if (percentage === null) return "—";
+  // One decimal place is fine for V1 — MAR-33 owns precise rounding rules.
+  return `${percentage.toFixed(percentage >= 10 ? 1 : 2)}`;
+}
+
 /**
  * Big card surfacing a better swap or bridge rate. Conversational headline,
  * source → destination token strip, primary "Use better rate" CTA, and a
  * secondary "Open in {route}" button stacked underneath.
+ *
+ * @remarks
+ * Cross-chain is rendered uniformly with same-chain — the only visual
+ * difference is the chain badge `TokenChip` paints on each side's icon
+ * disc when `chainId` is set. Headline copy, button stack, and layout are
+ * identical across swap and bridge.
  */
-export function BetterRateCard({ mode, onDismiss, onAccept, onOpenRoute }: BetterRateCardProps) {
-  const isBridge = mode === "bridge";
-  const pct = isBridge ? "0.46" : "2.7";
-  const route = isBridge ? "Stargate" : "1inch";
-  const src = TOKEN_CATALOGUE.USDC;
-  const dst = isBridge ? TOKEN_CATALOGUE.ARB : TOKEN_CATALOGUE.ETH;
-  const dstAmount = isBridge ? "100.46" : "0.03174";
-
+export function BetterRateCard({
+  percentage,
+  route,
+  src,
+  dst,
+  onDismiss,
+  onAccept,
+  onOpenRoute,
+}: BetterRateCardProps) {
+  const isCrossChain = src.chainId !== dst.chainId;
   return (
     <div className="overlay-card big">
       <div className="ol-header">
@@ -37,13 +57,23 @@ export function BetterRateCard({ mode, onDismiss, onAccept, onOpenRoute }: Bette
         </button>
       </div>
       <div className="ol-headline">
-        I can save you <span className="green">~{pct}%</span> by going through{" "}
+        I can save you <span className="green">~{formatPercent(percentage)}%</span> by going through{" "}
         <strong>{route}</strong> instead.
       </div>
       <div className="ol-token-row">
-        <TokenChip token={src} amount="100" />
+        <TokenChip
+          token={src.token}
+          amount={src.amount}
+          chainId={isCrossChain ? src.chainId : undefined}
+        />
         <span className="ol-arrow">→</span>
-        <TokenChip token={dst} amount={dstAmount} reverse highlight />
+        <TokenChip
+          token={dst.token}
+          amount={dst.amount}
+          chainId={isCrossChain ? dst.chainId : undefined}
+          reverse
+          highlight
+        />
       </div>
       <div className="ol-actions stacked">
         <button className="ol-btn primary full" onClick={onAccept}>

@@ -1,8 +1,8 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "maru",
+  "description": "Best swap rates, automatically.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -17,7 +17,6 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "comctx": "^1.6.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "viem": "^2.48.8"

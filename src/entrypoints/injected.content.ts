@@ -3,8 +3,7 @@ import { createDomGrounding } from "@/dom-grounding";
 import { resolveTokenMeta } from "@/dom-grounding/stub-token-meta";
 import { installInterceptors } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "@/heuristic/heuristic-match";
-import { injectQuoteChannel } from "@/messaging/quote-channel";
-import { MainAdapter } from "@/messaging/main-adapter";
+import { emitQuote } from "@/messaging/quote-channel";
 import { matchTemplates } from "@/template-engine/match-templates";
 import { registry } from "@/templates/registry";
 
@@ -13,14 +12,7 @@ export default defineContentScript({
   world: "MAIN",
   runAt: "document_start",
   main() {
-    const channel = injectQuoteChannel(new MainAdapter());
-
-    const arbiter = createArbiter({
-      emit: (update) => {
-        // fire-and-forget — dapp must not block on the extension round-trip.
-        void channel.emit(update).catch(() => {});
-      },
-    });
+    const arbiter = createArbiter({ emit: emitQuote });
 
     const wireGrounding = (): void => {
       const grounding = createDomGrounding({ resolveMeta: resolveTokenMeta });

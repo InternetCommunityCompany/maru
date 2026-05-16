@@ -1,4 +1,4 @@
-import type { InterceptedEvent } from "./types";
+import type { InterceptedEvent } from "./install-interceptors";
 import { makeIdGenerator } from "./make-id-generator";
 
 type RequestArgs = { method: string; params?: unknown };

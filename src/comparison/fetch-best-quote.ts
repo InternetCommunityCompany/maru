@@ -2,18 +2,10 @@ import { BACKEND_URL } from "@/backend-url";
 import type { BestQuote, QuoteRequest } from "./types";
 
 /**
- * Discriminated outcome of `fetchBestQuote`.
- *
- * `ok` carries the parsed `BestQuote`. `no_opinion` indicates the backend
- * returned `204` (no upstream had an answer). `failed` covers everything else
- * — non-2xx HTTP, network errors, timeouts, malformed bodies — and is
- * deliberately coarse: callers (the orchestrator) only branch on whether a
- * `ComparisonSnapshot` should be `result` / `no_opinion` / `failed`, and the
- * reason doesn't drive product behavior in V1.
- *
- * `aborted` is separate from `failed` so the orchestrator can drop the
- * outcome silently when it intentionally cancelled the request (session
- * evicted mid-flight) instead of emitting a `failed` snapshot.
+ * `failed.reason` is coarse — the orchestrator doesn't branch on it. `aborted`
+ * is split out so the orchestrator can drop the outcome silently when it
+ * intentionally cancelled (session evicted) instead of emitting a `failed`
+ * snapshot.
  */
 export type FetchBestQuoteOutcome =
   | { status: "ok"; quote: BestQuote }
@@ -21,46 +13,22 @@ export type FetchBestQuoteOutcome =
   | { status: "failed"; reason: string }
   | { status: "aborted" };
 
-/** Options for `fetchBestQuote`. */
 export type FetchBestQuoteOptions = {
-  /** AbortSignal — `fetchBestQuote` resolves with `{status: "aborted"}` when this fires. */
   signal?: AbortSignal;
-  /** Override the request timeout (ms). Defaults to `DEFAULT_FETCH_TIMEOUT_MS`. */
   timeoutMs?: number;
-  /** Override the global `fetch` — for tests. */
+  /** Override the global `fetch` for tests. */
   fetchImpl?: typeof fetch;
 };
 
-/**
- * Default per-request timeout (ms) for the backend `POST /api/quotes` call.
- *
- * The backend itself fans out to upstream aggregators with their own deadlines.
- * 8 s is generous enough to cover a worst-case upstream while still feeling
- * unresponsive to the user if it ever exhausts — at which point we fall through
- * to a `failed` snapshot.
- */
+/** Generous enough for the backend's upstream fan-out, snappy enough to feel responsive. */
 export const DEFAULT_FETCH_TIMEOUT_MS = 8_000;
 
 /**
- * POST `req` to the backend's `/api/quotes` and translate the HTTP outcome
- * into a `FetchBestQuoteOutcome`.
- *
- * Lives in the background service worker — that's where `host_permissions`
- * makes `fetch()` callable without per-tab CORS. The orchestrator passes an
- * `AbortSignal` so an in-flight request can be cancelled when the session is
- * evicted.
- *
- * @remarks
- * Outcome mapping:
- * - `200 OK` with parseable JSON → `ok`
- * - `204 No Content` → `no_opinion`
- * - Anything else (non-2xx, network, timeout, JSON parse failure) → `failed`
- * - `signal.aborted` (either pre-call or during the request) → `aborted`
- *
- * The response body is NOT schema-validated against `BestQuote` beyond the
- * presence of `provider` and `amountOut` — the backend owns the schema and
- * this client is a thin transport. Adding Zod validation here would duplicate
- * the backend's contract.
+ * POST `req` to `/api/quotes` and translate the HTTP outcome into a
+ * {@link FetchBestQuoteOutcome}. 200 → `ok` (with body validated by
+ * {@link isBestQuote}), 204 → `no_opinion`, anything else → `failed`,
+ * aborted-signal → `aborted`. Background-only — the backend host permission
+ * is what makes the call CORS-free.
  */
 export async function fetchBestQuote(
   req: QuoteRequest,
@@ -74,7 +42,7 @@ export async function fetchBestQuote(
   const timeoutController = new AbortController();
   const timeoutHandle = setTimeout(() => timeoutController.abort(), timeoutMs);
   const signal = options.signal
-    ? anySignal([options.signal, timeoutController.signal])
+    ? AbortSignal.any([options.signal, timeoutController.signal])
     : timeoutController.signal;
 
   try {
@@ -90,14 +58,11 @@ export async function fetchBestQuote(
       return { status: "failed", reason: `http_${response.status}` };
     }
 
-    const body = (await response.json()) as Partial<BestQuote>;
-    if (
-      typeof body.provider !== "string" ||
-      typeof body.amountOut !== "string"
-    ) {
+    const body: unknown = await response.json();
+    if (!isBestQuote(body)) {
       return { status: "failed", reason: "malformed_response" };
     }
-    return { status: "ok", quote: body as BestQuote };
+    return { status: "ok", quote: body };
   } catch (err) {
     if (options.signal?.aborted) return { status: "aborted" };
     if (timeoutController.signal.aborted) {
@@ -112,21 +77,30 @@ export async function fetchBestQuote(
   }
 }
 
-// Combines multiple AbortSignals into a single signal that aborts when any
-// input does. Standard `AbortSignal.any` is missing in some service-worker
-// runtimes, so we open-code it.
-const anySignal = (signals: AbortSignal[]): AbortSignal => {
-  const controller = new AbortController();
-  const onAbort = (event: Event) => {
-    const target = event.target as AbortSignal;
-    controller.abort(target.reason);
-  };
-  for (const s of signals) {
-    if (s.aborted) {
-      controller.abort(s.reason);
-      return controller.signal;
-    }
-    s.addEventListener("abort", onAbort, { once: true });
+const AMOUNT_RE = /^\d+$/u;
+
+// Mirrors the BestQuote type from maru-backend/src/types.ts. Kept in sync by
+// hand — adding zod here just to validate one response shape would dwarf the
+// rule it enforces.
+const isBestQuote = (body: unknown): body is BestQuote => {
+  if (typeof body !== "object" || body === null) return false;
+  const b = body as Record<string, unknown>;
+  if (typeof b.provider !== "string" || b.provider.length === 0) return false;
+  if (typeof b.amountOut !== "string" || !AMOUNT_RE.test(b.amountOut)) {
+    return false;
   }
-  return controller.signal;
+  if (typeof b.fetchedAt !== "number" || !Number.isFinite(b.fetchedAt)) {
+    return false;
+  }
+  if (b.routing !== undefined && typeof b.routing !== "string") return false;
+  if (b.gas !== undefined) {
+    if (typeof b.gas !== "object" || b.gas === null) return false;
+    const g = b.gas as Record<string, unknown>;
+    if (typeof g.units !== "string" || !AMOUNT_RE.test(g.units)) return false;
+    if (g.usd !== undefined && (typeof g.usd !== "number" || !Number.isFinite(g.usd))) {
+      return false;
+    }
+  }
+  // `raw` is the opaque pass-through bag — accept anything, including absent.
+  return true;
 };

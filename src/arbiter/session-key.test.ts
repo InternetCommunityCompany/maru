@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { partialSessionKey, sessionKey } from "./session-key";
 
 const USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";

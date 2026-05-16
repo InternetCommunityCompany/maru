@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { InterceptedEvent } from "./types";
+import type { InterceptedEvent } from "./install-interceptors";
 import { installFetchInterceptor } from "./fetch";
 
 type FetchEvent = Extract<InterceptedEvent, { source: "fetch" }>;

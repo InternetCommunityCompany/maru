@@ -4,20 +4,17 @@ import overlayCss from "@/assets/styles/overlay.css?inline";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { installFonts } from "@/assets/install-fonts";
-import { provideComparisonChannel } from "@/messaging/comparison-channel";
+import {
+  COMPARISON_PORT_NAME,
+  onComparison,
+} from "@/messaging/comparison-channel";
 import { connectWithReconnect } from "@/messaging/connect-with-reconnect";
-import { PortAdapter } from "@/messaging/port-adapter";
+import { hydrateChainListFromStorage } from "@/metadata/chain-info/hydrate-from-storage";
+import { hydrateTokenListFromStorage } from "@/metadata/token-info/hydrate-from-storage";
 import { canonicaliseHost } from "@/storage/canonicalise-host";
 import { excludedSites } from "@/storage/excluded-sites";
 import { Overlay } from "@/ui/overlay/Overlay";
-
-/**
- * Wire namespace of the port the overlay content script opens to the
- * background. The background's `runtime.onConnect` listener matches on this
- * name to wire `ComparisonChannel` for this tab — snapshots flow background→
- * overlay over this single port.
- */
-const COMPARISON_PORT_NAME = "maru:comparison";
+import { createSnapshotStore } from "@/ui/overlay/snapshot-store";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -29,6 +26,16 @@ export default defineContentScript({
     if (await isHostExcluded()) return;
 
     installFonts();
+
+    // Hydrate the content-script's own copy of the metadata indices from
+    // `storage.local` and subscribe to future updates. The background SW
+    // owns the network-refresh path (`ensureTokenList`/`ensureChainList`)
+    // and writes through to storage; the watchers set up here propagate
+    // those writes into our in-memory index.
+    void hydrateTokenListFromStorage();
+    void hydrateChainListFromStorage();
+
+    const store = createSnapshotStore();
 
     // Plain `host > shadow > [style, mount]` — no fake <html>/<body> wrappers.
     // Lets `.overlay`'s `position: fixed` and `z-index` work against the page
@@ -45,19 +52,16 @@ export default defineContentScript({
     const root = ReactDOM.createRoot(mount);
     root.render(
       <React.StrictMode>
-        <Overlay />
+        <Overlay store={store} />
       </React.StrictMode>,
     );
 
     // Open a long-lived port to the background and (re-)wire the comparison
-    // channel provider against each fresh port. The handler is a stub — the
-    // overlay state machine (MAR-32) is the consumer; this issue moves
-    // transport only.
+    // listener on each fresh port. Snapshots emitted by the orchestrator
+    // flow into the overlay's snapshot store, which `<Overlay>` reads via
+    // `useSyncExternalStore`.
     const reconnector = connectWithReconnect(COMPARISON_PORT_NAME, (port) => {
-      const adapter = new PortAdapter(port);
-      provideComparisonChannel(adapter, () => {
-        // TODO(MAR-32): wire snapshots into the overlay state machine.
-      });
+      onComparison(port, (snapshot) => store.set(snapshot));
     });
 
     const remove = () => {

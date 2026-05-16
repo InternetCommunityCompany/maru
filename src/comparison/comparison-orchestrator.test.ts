@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteUpdate } from "@/arbiter/types";
-import { createQuoteReducer } from "@/quote-reducer/quote-reducer";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import {
   createComparisonOrchestrator,
+  DEFAULT_SESSION_TTL_MS,
   type FetchBestQuote,
 } from "./comparison-orchestrator";
 import type { FetchBestQuoteOutcome } from "./fetch-best-quote";
@@ -64,218 +64,294 @@ const controllableFetch = () => {
   return { fetchImpl, pending };
 };
 
-describe("comparison-orchestrator: added", () => {
+describe("comparison-orchestrator: first ingest", () => {
   it("emits a pending snapshot synchronously and kicks off the fetch", () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update());
+    orchestrator.ingest(update());
 
     expect(sink).toHaveLength(1);
     expect(sink[0]).toEqual({ status: "pending", update: update() });
     expect(pending).toHaveLength(1);
-
-    orchestrator.dispose();
-    reducer.dispose();
   });
 
   it("emits a result snapshot when the fetch resolves with ok", async () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update());
+    orchestrator.ingest(update());
     pending[0]!.outcome = { status: "ok", quote: ok };
     pending[0]!.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
     expect(sink).toHaveLength(2);
-    expect(sink[1]!.status).toBe("result");
-    if (sink[1]!.status !== "result") throw new Error("expected result");
+    expect(sink[1]!.status).toBe("ok");
+    if (sink[1]!.status !== "ok") throw new Error("expected ok");
     expect(sink[1]!.comparison.provider).toBe("uniswap");
-    expect(sink[1]!.comparison.delta).toBe(10_000_000_000_000_000n);
-
-    orchestrator.dispose();
-    reducer.dispose();
+    expect(sink[1]!.comparison.delta).toBe("10000000000000000");
   });
 
   it("emits a no_opinion snapshot when the fetch resolves with 204", async () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update());
+    orchestrator.ingest(update());
     pending[0]!.outcome = { status: "no_opinion" };
     pending[0]!.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
     expect(sink.map((s) => s.status)).toEqual(["pending", "no_opinion"]);
-    orchestrator.dispose();
-    reducer.dispose();
   });
 
   it("emits a failed snapshot when the fetch resolves with failed", async () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update());
+    orchestrator.ingest(update());
     pending[0]!.outcome = { status: "failed", reason: "http_500" };
     pending[0]!.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
     expect(sink.map((s) => s.status)).toEqual(["pending", "failed"]);
-    orchestrator.dispose();
-    reducer.dispose();
   });
 });
 
-describe("comparison-orchestrator: updated", () => {
+describe("comparison-orchestrator: subsequent ingest on a known session", () => {
   it("synchronously emits a fresh result snapshot without refetching", async () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update({ sequence: 1, swap: swap({ amountOut: "500000000000000000" }) }));
+    orchestrator.ingest(update({ sequence: 1, swap: swap({ amountOut: "500000000000000000" }) }));
     pending[0]!.outcome = { status: "ok", quote: ok };
     pending[0]!.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
     sink.length = 0;
-    reducer.ingest(update({ sequence: 2, swap: swap({ amountOut: "505000000000000000" }) }));
+    orchestrator.ingest(update({ sequence: 2, swap: swap({ amountOut: "505000000000000000" }) }));
 
     // No new fetch.
     expect(pending).toHaveLength(1);
     expect(sink).toHaveLength(1);
-    expect(sink[0]!.status).toBe("result");
-    if (sink[0]!.status !== "result") throw new Error("expected result");
+    expect(sink[0]!.status).toBe("ok");
+    if (sink[0]!.status !== "ok") throw new Error("expected ok");
     // dapp now 505, backend 510 → +5
-    expect(sink[0]!.comparison.delta).toBe(5_000_000_000_000_000n);
-
-    orchestrator.dispose();
-    reducer.dispose();
+    expect(sink[0]!.comparison.delta).toBe("5000000000000000");
   });
 
   it("re-emits the pending status while a fetch is still in flight", () => {
-    const reducer = createQuoteReducer();
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
     orchestrator.subscribe((s) => sink.push(s));
 
-    reducer.ingest(update({ sequence: 1 }));
+    orchestrator.ingest(update({ sequence: 1 }));
     sink.length = 0;
-    reducer.ingest(update({ sequence: 2 }));
+    orchestrator.ingest(update({ sequence: 2 }));
 
     expect(sink).toHaveLength(1);
     expect(sink[0]!.status).toBe("pending");
-    orchestrator.dispose();
-    reducer.dispose();
+  });
+
+  it("drops an out-of-order arrival (sequence < stored)", () => {
+    const sink: ComparisonSnapshot[] = [];
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
+    orchestrator.subscribe((s) => sink.push(s));
+
+    orchestrator.ingest(update({ sequence: 5 }));
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 3 }));
+
+    expect(sink).toHaveLength(0);
+  });
+
+  it("drops a duplicate arrival (sequence == stored)", () => {
+    const sink: ComparisonSnapshot[] = [];
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
+    orchestrator.subscribe((s) => sink.push(s));
+
+    orchestrator.ingest(update({ sequence: 7 }));
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 7 }));
+
+    expect(sink).toHaveLength(0);
   });
 });
 
-describe("comparison-orchestrator: evicted", () => {
+describe("comparison-orchestrator: TTL eviction", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("aborts the in-flight fetch and emits no trailing snapshot", async () => {
-    const reducer = createQuoteReducer({ ttlMs: 100 });
     const sink: ComparisonSnapshot[] = [];
     const { fetchImpl, pending } = controllableFetch();
     const orchestrator = createComparisonOrchestrator({
-      reducer,
       fetchBestQuote: fetchImpl,
+      ttlMs: 100,
+    });
+    orchestrator.subscribe((s) => sink.push(s));
+
+    orchestrator.ingest(update());
+    expect(pending[0]!.signal?.aborted).toBe(false);
+
+    vi.advanceTimersByTime(100);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(pending[0]!.signal?.aborted).toBe(true);
+    expect(sink.map((s) => s.status)).toEqual(["pending"]);
+  });
+
+  it("resets the TTL timer on every accepted update", () => {
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({
+      fetchBestQuote: fetchImpl,
+      ttlMs: 1000,
+    });
+    const sink: ComparisonSnapshot[] = [];
+    orchestrator.subscribe((s) => sink.push(s));
+
+    orchestrator.ingest(update({ sequence: 1 }));
+    vi.advanceTimersByTime(900);
+    orchestrator.ingest(update({ sequence: 2 }));
+    vi.advanceTimersByTime(900);
+    // Total elapsed: 1800ms. Without the reset the session would be gone; the
+    // reset means we're still live, so a new (higher-seq) update emits.
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 3 }));
+    expect(sink).toHaveLength(1);
+
+    vi.advanceTimersByTime(1000);
+    // Now evicted — a re-ingest at the same sequence opens a fresh session.
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 3 }));
+    expect(sink).toHaveLength(1);
+    expect(sink[0]!.status).toBe("pending");
+  });
+
+  it("does not reset the TTL timer when an out-of-order update is dropped", () => {
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({
+      fetchBestQuote: fetchImpl,
+      ttlMs: 1000,
+    });
+    const sink: ComparisonSnapshot[] = [];
+    orchestrator.subscribe((s) => sink.push(s));
+
+    orchestrator.ingest(update({ sequence: 5 }));
+    vi.advanceTimersByTime(900);
+    orchestrator.ingest(update({ sequence: 1 })); // dropped — out of order
+    vi.advanceTimersByTime(100);
+
+    // Session evicted by now; a fresh ingest at seq 6 reopens, emits pending.
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 6 }));
+    expect(sink[0]!.status).toBe("pending");
+  });
+
+  it("uses DEFAULT_SESSION_TTL_MS when no override is provided", () => {
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
+    orchestrator.ingest(update());
+
+    vi.advanceTimersByTime(DEFAULT_SESSION_TTL_MS - 1);
+    const sink: ComparisonSnapshot[] = [];
+    orchestrator.subscribe((s) => sink.push(s));
+    orchestrator.ingest(update({ sequence: 2 }));
+    expect(sink).toHaveLength(1); // session still live, emit happened
+
+    vi.advanceTimersByTime(DEFAULT_SESSION_TTL_MS);
+    sink.length = 0;
+    orchestrator.ingest(update({ sequence: 3 }));
+    expect(sink[0]!.status).toBe("pending"); // evicted, fresh session
+  });
+});
+
+describe("comparison-orchestrator: multi-session independence", () => {
+  it("keeps independent state per sessionKey", () => {
+    const { fetchImpl, pending } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
+    orchestrator.ingest(update({ sessionKey: "a", sequence: 1 }));
+    orchestrator.ingest(update({ sessionKey: "b", sequence: 1 }));
+    orchestrator.ingest(update({ sessionKey: "a", sequence: 2 }));
+
+    // Two fetches kicked off (one per session), no third for a's update.
+    expect(pending).toHaveLength(2);
+  });
+});
+
+describe("comparison-orchestrator: subscribers", () => {
+  it("stops invoking a listener after its unsubscribe runs", () => {
+    const { fetchImpl } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
+    const fn = vi.fn();
+    const unsubscribe = orchestrator.subscribe(fn);
+    orchestrator.ingest(update({ sequence: 1 }));
+    unsubscribe();
+    orchestrator.ingest(update({ sequence: 2 }));
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("comparison-orchestrator: aborted fetch", () => {
+  it("does not emit `failed` for an aborted fetch", async () => {
+    const sink: ComparisonSnapshot[] = [];
+    const { fetchImpl, pending } = controllableFetch();
+    const orchestrator = createComparisonOrchestrator({
+      fetchBestQuote: fetchImpl,
+      ttlMs: 50,
     });
     orchestrator.subscribe((s) => sink.push(s));
 
     vi.useFakeTimers();
     try {
-      reducer.ingest(update());
-      expect(pending[0]!.signal?.aborted).toBe(false);
-
-      vi.advanceTimersByTime(100); // triggers eviction
-      // microtasks
+      orchestrator.ingest(update());
+      sink.length = 0;
+      vi.advanceTimersByTime(50); // evict → abort
       await Promise.resolve();
       await Promise.resolve();
-
-      expect(pending[0]!.signal?.aborted).toBe(true);
-      // sink: only the initial pending snapshot — eviction emits nothing,
-      // aborted fetch resolution emits nothing.
-      expect(sink.map((s) => s.status)).toEqual(["pending"]);
     } finally {
       vi.useRealTimers();
     }
 
-    orchestrator.dispose();
-    reducer.dispose();
-  });
-
-  it("does not emit `failed` for an aborted fetch", async () => {
-    const reducer = createQuoteReducer();
-    const sink: ComparisonSnapshot[] = [];
-    const { fetchImpl, pending } = controllableFetch();
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
-    orchestrator.subscribe((s) => sink.push(s));
-
-    reducer.ingest(update());
-    sink.length = 0;
-    orchestrator.dispose();
+    // The aborted resolution shouldn't emit anything.
     pending[0]!.resolve();
     await Promise.resolve();
     await Promise.resolve();
-
     expect(sink).toHaveLength(0);
-    reducer.dispose();
   });
 });
 
 describe("comparison-orchestrator: request shape", () => {
   it("derives QuoteRequest fields from the swap and uses lowercase token addresses", async () => {
-    const reducer = createQuoteReducer();
     const calls: unknown[] = [];
     const fetchImpl: FetchBestQuote = async (req) => {
       calls.push(req);
       return { status: "ok", quote: ok };
     };
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
 
-    reducer.ingest(
+    orchestrator.ingest(
       update({
         swap: swap({
           tokenIn: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -297,29 +373,19 @@ describe("comparison-orchestrator: request shape", () => {
       amount: "12345",
       kind: "exact_in",
     });
-
-    orchestrator.dispose();
-    reducer.dispose();
   });
 
-  it("fires exactly one fetch per session even with many `updated` events", async () => {
-    const reducer = createQuoteReducer();
+  it("fires exactly one fetch per session even with many higher-sequence updates", async () => {
     const fetchImpl = vi.fn<FetchBestQuote>(async () => ({
       status: "ok",
       quote: ok,
     }));
-    const orchestrator = createComparisonOrchestrator({
-      reducer,
-      fetchBestQuote: fetchImpl,
-    });
+    const orchestrator = createComparisonOrchestrator({ fetchBestQuote: fetchImpl });
 
     for (let i = 1; i <= 5; i++) {
-      reducer.ingest(update({ sequence: i, swap: swap({ amountOut: `${i}0` }) }));
+      orchestrator.ingest(update({ sequence: i, swap: swap({ amountOut: `${i}0` }) }));
       await Promise.resolve();
     }
     expect(fetchImpl).toHaveBeenCalledOnce();
-
-    orchestrator.dispose();
-    reducer.dispose();
   });
 });

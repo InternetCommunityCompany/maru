@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hydrateTokenIndex, lookupToken, tokenKey } from "./token-index";
-import type { TokenList } from "./types";
+import type { TokenList } from "./token-index";
 
 const sample: TokenList = {
   tokens: [

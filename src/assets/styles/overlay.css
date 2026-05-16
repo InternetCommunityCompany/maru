@@ -135,18 +135,38 @@
   justify-content: flex-end;
 }
 .ol-token-icon {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: var(--r-circle);
   border: 2px solid var(--border-strong);
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-accent);
-  font-weight: 900;
-  font-size: 15px;
   flex-shrink: 0;
-  font-family: var(--font-display);
+  overflow: visible;
+}
+.ol-token-logo {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-circle);
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.ol-token-logo.placeholder {
+  background: var(--surface-2);
+}
+.ol-token-chain-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-circle);
+  border: 2px solid var(--surface);
+  background: var(--surface);
+  object-fit: cover;
 }
 .ol-token-info.right {
   text-align: right;

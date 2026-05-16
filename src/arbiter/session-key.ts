@@ -1,4 +1,4 @@
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import type { SessionKey, SessionPartialKey } from "./types";
 
 const normAmount = (v: string): string => {

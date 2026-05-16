@@ -1,5 +1,5 @@
 import { Maru } from "@/ui/mascot/Maru";
-import type { MaruState } from "@/ui/mascot/types";
+import type { MaruState } from "@/ui/mascot/state-sources";
 import type { ReactNode } from "react";
 
 /** The compact pill variants surfaced from the overlay state machine. */

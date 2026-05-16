@@ -1,4 +1,4 @@
-import type { Candidate, QuoteSession } from "./types";
+import type { Candidate } from "./types";
 
 const PROVENANCE_TEMPLATE = 0.6;
 const PROVENANCE_HEURISTIC = 0.3;
@@ -35,26 +35,14 @@ const amountOutRank = (candidate: Candidate): number => {
 /**
  * Pure scorer for an arbiter candidate. Higher is better.
  *
- * The score combines:
- * - **provenance**: template > heuristic. Templates are curated; heuristics
- *   are alias guesses.
- * - **phase**: response (completed) > request (pending).
- * - **amountOut rank**: a continuous bit-length component so candidates
- *   with a larger output score strictly higher (the UI typically displays
- *   the highest quote, so this is the candidate the user is most likely
- *   looking at). Bit-length is used as a log-scale proxy so wei-scale
- *   bigints don't blow up the score.
- * - **grounding boost**: passed through from the DOM grounding provider,
- *   typically in `[0, 1]`. Treated as a flat additive lift so a strong
- *   grounding hit can override provenance.
- *
- * Pure: `session` is currently unused (rank is per-candidate), but the
- * parameter is kept on the signature so a future refinement that needs
- * session-relative context can land without churning every call site.
+ * Score = provenance (template 0.6, heuristic 0.3) + response-phase bonus (0.2)
+ * + log-scale amountOut rank (≤ 0.256 for a 256-bit value) + grounding boost
+ * (≥ 0). The amountOut rank uses bit-length so wei-scale `bigint`s don't blow
+ * up the score; provenance + phase dominate it for normal inputs, but a
+ * strong grounding boost can override provenance.
  */
 export function score(
   candidate: Candidate,
-  _session: QuoteSession,
   groundingBoost: number = 0,
 ): number {
   const provenance =

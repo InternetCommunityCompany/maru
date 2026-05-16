@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { cx } from "@/ui/cx";
 import { MARU_STATE_SOURCES } from "./state-sources";
-import type { MaruState } from "./types";
+import type { MaruState } from "./state-sources";
 
 /** Native pixel ratio of every Maru sprite (141 wide × 77 tall). */
 const SOURCE_RATIO = 141 / 77;

@@ -4,35 +4,24 @@ import type {
   SessionPartialKey,
 } from "./types";
 
-/**
- * Default idle TTL (ms) after which an inactive session is evicted.
- *
- * Long enough to span user think time on a quote page, short enough to bound
- * memory if a tab is left open and the dapp keeps polling unrelated
- * endpoints.
- */
+/** Spans user think time; short enough to bound memory on idle dapp pages. */
 export const DEFAULT_IDLE_TTL_MS = 5 * 60 * 1000;
 
 export type SessionStoreOptions = {
-  /** Override the idle TTL (ms). Defaults to `DEFAULT_IDLE_TTL_MS`. */
   idleTtlMs?: number;
-  /** Time source — injected so unit tests can drive the clock without `vi.useFakeTimers()`. */
+  /** Test seam. */
   now?: () => number;
 };
 
 /**
- * In-memory map from `SessionKey` to `QuoteSession`.
+ * Per-arbiter `Map<SessionKey, QuoteSession>`. Two evictions:
  *
- * Two evictions matter:
- * - Partial-key eviction on `openOrGet` closes the prior session for the
- *   same `(domain, chainIn, chainOut, tokenIn, tokenOut)` the moment the
- *   user types a new amount. Without it, churn in the amount field would
- *   leak sessions until the idle TTL fires.
- * - Idle eviction runs on every store access. Cheap because the store stays
- *   small in practice (one or two sessions per active quote page).
+ * - **Partial-key** on `openOrGet` — closes the prior session for the same
+ *   trade pair the moment the user types a new amount. Without this, amount
+ *   churn would leak sessions until the idle TTL fires.
+ * - **Idle** swept on every access. Cheap — store stays small in practice.
  *
- * `delete` clears the session's debounce timer so timers never fire against
- * an evicted session.
+ * `delete` clears the session's debounce timer so it can't fire post-eviction.
  */
 export class SessionStore {
   private readonly sessions = new Map<SessionKey, QuoteSession>();
@@ -45,15 +34,10 @@ export class SessionStore {
   }
 
   /**
-   * Get the session for `key`, opening it if missing.
-   *
-   * Before opening, closes any existing session whose `partialKey` matches —
-   * i.e. the same trade pair on the same domain but with a different
-   * `amountIn`. Also sweeps idle sessions whose `lastActivity` is older than
-   * the configured TTL.
-   *
-   * Returns `{ session, opened }` so the arbiter can branch on the first-
-   * candidate path (immediate emission at the no-grounding tier).
+   * Get the session for `key`, opening one if missing. Closes any prior
+   * session with the same `partialKey` (same trade pair, different amount)
+   * and sweeps idle sessions. `opened` lets the arbiter branch on the
+   * first-candidate path.
    */
   openOrGet(
     key: SessionKey,
@@ -82,16 +66,11 @@ export class SessionStore {
     return { session, opened: true };
   }
 
-  /** Lookup without opening. Returns `undefined` if the session has been evicted. */
   get(key: SessionKey): QuoteSession | undefined {
     return this.sessions.get(key);
   }
 
-  /**
-   * Delete `key` and clear its debounce timer if any.
-   *
-   * Idempotent — deleting a missing key is a no-op.
-   */
+  /** Idempotent. Clears any pending debounce timer so it can't fire post-eviction. */
   delete(key: SessionKey): void {
     const s = this.sessions.get(key);
     if (!s) return;
@@ -102,12 +81,12 @@ export class SessionStore {
     this.sessions.delete(key);
   }
 
-  /** Number of live sessions. Intended for tests and diagnostics. */
+  /** Test/diagnostics. */
   get size(): number {
     return this.sessions.size;
   }
 
-  /** Iterate all live sessions. Intended for tests and diagnostics. */
+  /** Test/diagnostics. */
   values(): IterableIterator<QuoteSession> {
     return this.sessions.values();
   }

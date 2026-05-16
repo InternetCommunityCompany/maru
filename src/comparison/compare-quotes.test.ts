@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { compareQuotes } from "./compare-quotes";
 import type { BestQuote } from "./types";
 
@@ -30,26 +30,26 @@ describe("compareQuotes", () => {
   it("backend better: positive delta and percentage", () => {
     const result = compareQuotes(swap(), best());
     // dapp = 0.5 ETH, backend = 0.51 ETH → +0.01 ETH, +2%
-    expect(result.delta).toBe(10_000_000_000_000_000n);
+    expect(result.delta).toBe("10000000000000000");
     expect(result.percentage).toBeCloseTo(2, 5);
     expect(result.provider).toBe("uniswap");
   });
 
   it("dapp better: negative delta and negative percentage", () => {
     const result = compareQuotes(swap(), best({ amountOut: "490000000000000000" }));
-    expect(result.delta).toBe(-10_000_000_000_000_000n);
+    expect(result.delta).toBe("-10000000000000000");
     expect(result.percentage).toBeCloseTo(-2, 5);
   });
 
   it("parity: zero delta and zero percentage", () => {
     const result = compareQuotes(swap(), best({ amountOut: "500000000000000000" }));
-    expect(result.delta).toBe(0n);
+    expect(result.delta).toBe("0");
     expect(result.percentage).toBe(0);
   });
 
   it("zero dapp amount: delta well-defined, percentage null", () => {
     const result = compareQuotes(swap({ amountOut: "0" }), best());
-    expect(result.delta).toBe(510_000_000_000_000_000n);
+    expect(result.delta).toBe("510000000000000000");
     expect(result.percentage).toBeNull();
   });
 
@@ -66,13 +66,13 @@ describe("compareQuotes", () => {
   it("handles uint256-scale amounts without losing precision", () => {
     const huge = "999999999999999999999999999999"; // 30 digits, > 2^53
     const result = compareQuotes(swap({ amountOut: huge }), best({ amountOut: huge }));
-    expect(result.delta).toBe(0n);
+    expect(result.delta).toBe("0");
   });
 
   it("defends against unparseable amounts by treating them as zero", () => {
     const result = compareQuotes(swap({ amountOut: "garbage" }), best());
     // dapp parses as 0 → percentage null, delta = backend
-    expect(result.delta).toBe(510_000_000_000_000_000n);
+    expect(result.delta).toBe("510000000000000000");
     expect(result.percentage).toBeNull();
   });
 });

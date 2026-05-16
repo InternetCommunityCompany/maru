@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Candidate } from "@/arbiter/types";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { matchAmounts } from "./match-amounts";
 import type { TextNodeSnapshot, TokenMetaResolver } from "./types";
 

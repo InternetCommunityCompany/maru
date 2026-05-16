@@ -1,6 +1,6 @@
-import type { InterceptedEvent } from "@/interceptors/types";
+import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { normalizeTokenAddress } from "@/template-engine/normalize-token-address";
-import type { SwapEvent } from "@/template-engine/types";
+import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { tryParseJson } from "@/template-engine/try-parse-json";
 import { findByAliases } from "./find-by-aliases";
 import { HEURISTIC_ALIASES } from "./heuristic-aliases";
@@ -82,16 +82,6 @@ export function heuristicMatch(
   // Same-chain default: a single `chainId` field maps to both ends.
   if (chainIn !== null && chainOut === null) chainOut = chainIn;
   if (chainOut !== null && chainIn === null) chainIn = chainOut;
-
-  console.log({
-    event,
-    tokenIn,
-    tokenOut,
-    amountIn,
-    amountOut,
-    chainIn,
-    chainOut,
-  });
 
   if (
     tokenIn === null ||
