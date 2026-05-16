@@ -49,9 +49,12 @@ export async function ensureTokenList(
     }
     await tokenList.setValue({ data, fetchedAt: now() });
     hydrateTokenIndex(data);
-  } catch {
+  } catch (err) {
     // Non-fatal: keep whatever we already have. If this was a cold install,
-    // the index stays empty until the next refresh attempt succeeds.
+    // the index stays empty until the next refresh attempt succeeds. We log
+    // so a backend outage on first install (where the "Unknown token"
+    // fallback would otherwise be the only signal) is debuggable.
+    console.warn("[maru] ensureTokenList refresh failed", err);
     hydrateTokenIndex(stored.data);
   }
 }

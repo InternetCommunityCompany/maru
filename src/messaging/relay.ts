@@ -24,9 +24,12 @@ export function startContentRelay(): Reconnector {
     if (port === null) return; // dropped while reconnecting — next emission retries
     try {
       port.postMessage(event.data.update);
-    } catch {
-      // Port broke between the null check and postMessage —
-      // onDisconnect will fire and the reconnect loop will re-establish.
+    } catch (err) {
+      // Usually means the port broke between the null check and postMessage —
+      // onDisconnect will fire and the reconnect loop will re-establish. We
+      // log so non-port errors (e.g. an unserializable update silently
+      // breaking the wire) aren't invisible.
+      console.warn("[maru] relay postMessage failed", err);
     }
   });
 

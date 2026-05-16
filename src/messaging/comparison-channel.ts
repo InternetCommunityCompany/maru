@@ -3,9 +3,10 @@ import type { ComparisonSnapshot } from "@/comparison/types";
 export const COMPARISON_PORT_NAME = "maru:comparison";
 
 /**
- * Post a `ComparisonSnapshot` to an overlay port. Swallows `postMessage`
- * failures — if the port dropped between the last `onDisconnect` check and
- * this call, the disconnect listener will tear the subscription down.
+ * Post a `ComparisonSnapshot` to an overlay port. A throw here usually means
+ * the port dropped between the last `onDisconnect` check and this call —
+ * `onDisconnect` will tear the subscription down. We log so non-port errors
+ * (e.g. an unserializable payload silently breaking the wire) aren't invisible.
  */
 export const emitComparison = (
   port: Browser.runtime.Port,
@@ -13,8 +14,8 @@ export const emitComparison = (
 ): void => {
   try {
     port.postMessage(snapshot);
-  } catch {
-    /* port broken; onDisconnect will clean up */
+  } catch (err) {
+    console.warn("[maru] emitComparison failed", err);
   }
 };
 

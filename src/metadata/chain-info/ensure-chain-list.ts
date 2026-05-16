@@ -49,9 +49,12 @@ export async function ensureChainList(
     }
     await chainList.setValue({ data, fetchedAt: now() });
     hydrateChainIndex(data);
-  } catch {
+  } catch (err) {
     // Non-fatal: keep whatever we already have. If this was a cold install,
-    // the index stays empty until the next refresh attempt succeeds.
+    // the index stays empty until the next refresh attempt succeeds. We log
+    // so a backend outage on first install (where missing chain badges
+    // would otherwise be the only signal) is debuggable.
+    console.warn("[maru] ensureChainList refresh failed", err);
     hydrateChainIndex(stored.data);
   }
 }

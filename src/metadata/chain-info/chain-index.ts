@@ -28,6 +28,7 @@ export function hydrateChainIndex(list: ChainList): void {
       name: entry.name,
       shortName: entry.shortName,
       iconUrl: entry.iconUrl,
+      nativeCurrency: entry.nativeCurrency,
     });
   }
 }

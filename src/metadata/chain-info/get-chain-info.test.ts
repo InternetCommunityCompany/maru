@@ -14,7 +14,7 @@ describe("getChainInfo", () => {
           chainId: 1,
           name: "Ethereum Mainnet",
           shortName: "eth",
-          iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+          iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
         },
       ],
     });

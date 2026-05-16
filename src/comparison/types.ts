@@ -35,13 +35,15 @@ export type BestQuote = {
 
 /**
  * `delta` is `backend.amountOut - dapp.amountOut` in `tokenOut` base units —
- * positive means the backend is better. As a `bigint` because uint256 strings
- * overflow `number`. `percentage` is `null` when the dapp amount is zero.
+ * positive means the backend is better. Carried as a signed decimal string so
+ * the snapshot stays JSON-serializable across `runtime.Port.postMessage`
+ * (BigInt would throw at the wire); consumers wrap with `BigInt(...)` before
+ * arithmetic. `percentage` is `null` when the dapp amount is zero.
  *
  * Gas accounting is intentionally absent — V1 compares gross `amountOut`.
  */
 export type ComparisonResult = {
-  delta: bigint;
+  delta: string;
   percentage: number | null;
   provider: string;
   routing?: string;

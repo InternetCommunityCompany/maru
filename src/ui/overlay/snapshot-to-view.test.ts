@@ -90,7 +90,7 @@ describe("snapshotToView", () => {
       status: "ok",
       update: update(),
       comparison: {
-        delta: 1_000_000_000_000_000n,
+        delta: "1000000000000000",
         percentage: 3.33,
         provider: "1inch",
         routing: "1inch via Uniswap V3",
@@ -114,7 +114,7 @@ describe("snapshotToView", () => {
       status: "ok",
       update: update(),
       comparison: {
-        delta: 0n,
+        delta: "0",
         percentage: 0,
         provider: "1inch",
       },
@@ -127,7 +127,7 @@ describe("snapshotToView", () => {
       status: "ok",
       update: update(),
       comparison: {
-        delta: -100n,
+        delta: "-100",
         percentage: -0.1,
         provider: "1inch",
       },
@@ -140,7 +140,7 @@ describe("snapshotToView", () => {
       status: "ok",
       update: update(),
       comparison: {
-        delta: 1n,
+        delta: "1",
         percentage: 1,
         provider: "cowswap",
       },
@@ -158,7 +158,7 @@ describe("snapshotToView", () => {
           tokenIn: "0x0000000000000000000000000000000000000099",
         }),
       }),
-      comparison: { delta: 1n, percentage: 0.1, provider: "1inch" },
+      comparison: { delta: "1", percentage: 0.1, provider: "1inch" },
     };
     const view = snapshotToView(snap);
     if (view?.kind !== "better-rate") throw new Error("expected better-rate");
@@ -182,7 +182,7 @@ describe("snapshotToView", () => {
         }),
       }),
       comparison: {
-        delta: 500_000n,
+        delta: "500000",
         percentage: 0.5,
         provider: "stargate",
         routing: "Stargate",
@@ -203,7 +203,7 @@ describe("snapshotToView", () => {
       status: "ok",
       update: update({ swap: swap({ amountOut: "0" }) }),
       comparison: {
-        delta: 1_000_000n,
+        delta: "1000000",
         percentage: null,
         provider: "1inch",
       },

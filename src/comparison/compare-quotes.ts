@@ -23,7 +23,7 @@ export function compareQuotes(
   const percentage =
     dappAmount === 0n ? null : Number((delta * 10000n) / dappAmount) / 100;
   return {
-    delta,
+    delta: delta.toString(),
     percentage,
     provider: backend.provider,
     ...(backend.routing !== undefined ? { routing: backend.routing } : {}),

@@ -8,19 +8,19 @@ const sample: ChainList = {
       chainId: 1,
       name: "Ethereum Mainnet",
       shortName: "eth",
-      iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+      iconUrl: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     },
     {
       chainId: 42161,
       name: "Arbitrum One",
       shortName: "arb1",
-      iconUrl: "https://example.test/arb.png",
+      iconUrl: "https://example.test/arb.png", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     },
     {
       chainId: 999,
       name: "Iconless",
       shortName: "icns",
-      iconUrl: null,
+      iconUrl: null, nativeCurrency: null,
     },
   ],
 };

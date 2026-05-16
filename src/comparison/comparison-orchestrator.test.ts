@@ -94,7 +94,7 @@ describe("comparison-orchestrator: first ingest", () => {
     expect(sink[1]!.status).toBe("ok");
     if (sink[1]!.status !== "ok") throw new Error("expected ok");
     expect(sink[1]!.comparison.provider).toBe("uniswap");
-    expect(sink[1]!.comparison.delta).toBe(10_000_000_000_000_000n);
+    expect(sink[1]!.comparison.delta).toBe("10000000000000000");
   });
 
   it("emits a no_opinion snapshot when the fetch resolves with 204", async () => {
@@ -150,7 +150,7 @@ describe("comparison-orchestrator: subsequent ingest on a known session", () => 
     expect(sink[0]!.status).toBe("ok");
     if (sink[0]!.status !== "ok") throw new Error("expected ok");
     // dapp now 505, backend 510 → +5
-    expect(sink[0]!.comparison.delta).toBe(5_000_000_000_000_000n);
+    expect(sink[0]!.comparison.delta).toBe("5000000000000000");
   });
 
   it("re-emits the pending status while a fetch is still in flight", () => {

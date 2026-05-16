@@ -80,7 +80,7 @@ export function snapshotToView(
       return null;
     case "ok": {
       const { update, comparison } = snapshot;
-      if (comparison.delta <= 0n) {
+      if (BigInt(comparison.delta) <= 0n) {
         return { kind: "pill", variant: "all-good" };
       }
       const { swap } = update;
