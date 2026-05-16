@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Arbiter } from "./tabs/Arbiter";
+import { Compare } from "./tabs/Compare";
 import { useDebugStream } from "./use-debug-stream";
 
 type TabKey = "templates" | "heuristics" | "arbiter" | "compare";
@@ -11,13 +13,12 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 /**
- * Shell for the MARU DevTools panel. Renders four named placeholder tabs;
- * the actual tab bodies land in sibling tasks (MAR-99/MAR-100). The debug
- * port subscription is wired here so the event log is ready as soon as the
- * first tab implementation needs it.
+ * Shell for the MARU DevTools panel. Owns the single debug-port subscription
+ * and prop-drills the folded stream to each tab so all tabs see the same
+ * event order regardless of mount timing.
  */
 export function App() {
-  const [active, setActive] = useState<TabKey>("templates");
+  const [active, setActive] = useState<TabKey>("arbiter");
   const stream = useDebugStream();
 
   return (
@@ -35,11 +36,10 @@ export function App() {
         ))}
       </nav>
       <section>
-        <p>
-          Tab: <strong>{active}</strong> · events received:{" "}
-          {stream.events.length}
-        </p>
-        <p>(Tab content lands in MAR-99/MAR-100.)</p>
+        {active === "arbiter" && <Arbiter stream={stream} />}
+        {active === "compare" && <Compare stream={stream} />}
+        {active === "templates" && <p>(Templates tab lands in MAR-100.)</p>}
+        {active === "heuristics" && <p>(Heuristics tab lands in MAR-100.)</p>}
       </section>
     </div>
   );
