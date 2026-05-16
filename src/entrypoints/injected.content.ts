@@ -1,11 +1,20 @@
 import { createArbiter } from "@/arbiter/arbiter";
+import { onTrace } from "@/debug/debug-bus";
 import { createDomGrounding } from "@/dom-grounding";
 import { resolveTokenMeta } from "@/dom-grounding/stub-token-meta";
 import { installInterceptors } from "@/interceptors/install-interceptors";
 import { heuristicMatch } from "@/heuristic/heuristic-match";
+import { emitDebug } from "@/messaging/debug-channel";
 import { emitQuote } from "@/messaging/quote-channel";
 import { matchTemplates } from "@/template-engine/match-templates";
 import { registry } from "@/templates/registry";
+
+if (import.meta.env.DEV) {
+  // Mirror MAIN-world traces onto the window envelope so the ISOLATED relay
+  // can forward them to the background buffer. Vite DCE drops this block
+  // (and the two imports above that only flow through it) in production.
+  onTrace(emitDebug);
+}
 
 export default defineContentScript({
   matches: ["<all_urls>"],
