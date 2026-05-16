@@ -6,49 +6,30 @@ import type {
 } from "./fetch-best-quote";
 import type { BestQuote, ComparisonSnapshot, QuoteRequest } from "./types";
 
-/** Function signature of `fetchBestQuote`, injectable for tests. */
 export type FetchBestQuote = (
   req: QuoteRequest,
   options?: FetchBestQuoteOptions,
 ) => Promise<FetchBestQuoteOutcome>;
 
-/**
- * Default idle TTL — a session whose last ingest is older than this is
- * evicted: in-flight fetch aborted, cache entry dropped.
- *
- * Generous on purpose: aggregator UIs can sit idle for a while between
- * refreshes and we don't want to drop the user's last visible comparison
- * mid-read.
- */
+/** Idle session TTL — generous so a user reading the overlay doesn't lose state. */
 export const DEFAULT_SESSION_TTL_MS = 60_000;
 
-/** Options for `createComparisonOrchestrator`. */
 export type ComparisonOrchestratorOptions = {
-  /** Wire-side fetcher — defaults to `fetchBestQuote` in production wiring. */
   fetchBestQuote: FetchBestQuote;
-  /** Idle TTL (ms) override. Defaults to {@link DEFAULT_SESSION_TTL_MS}. */
+  /** Idle TTL (ms). Defaults to {@link DEFAULT_SESSION_TTL_MS}. */
   ttlMs?: number;
 };
 
-/** Sink for `ComparisonSnapshot`s — one of these per active content-script port. */
 export type ComparisonSnapshotListener = (snapshot: ComparisonSnapshot) => void;
 
-/** Handle returned by `createComparisonOrchestrator`. */
 export type ComparisonOrchestrator = {
   /**
-   * Apply an incoming `QuoteUpdate`. Out-of-order updates (sequence not
-   * strictly greater than the stored one for the same session) are dropped
-   * silently. Every accepted update resets the per-session TTL timer.
-   *
-   * Wired into the background's `onQuote` port handler.
+   * Apply an incoming `QuoteUpdate`. Updates whose `sequence` isn't strictly
+   * greater than the stored one are dropped silently. Accepted updates reset
+   * the per-session TTL timer.
    */
   ingest(update: QuoteUpdate): void;
-  /**
-   * Subscribe a listener to receive every emitted `ComparisonSnapshot`. The
-   * returned function detaches the listener; safe to call multiple times.
-   * Each connected port wires its own listener and tears it down on
-   * `port.onDisconnect` so background→content traffic stays point-cast.
-   */
+  /** Each port wires its own listener and tears it down on `port.onDisconnect`. */
   subscribe(listener: ComparisonSnapshotListener): () => void;
 };
 
@@ -66,28 +47,14 @@ type Session = {
 };
 
 /**
- * Build a comparison orchestrator that owns per-session state and translates
- * `QuoteUpdate`s on the quote channel into `ComparisonSnapshot`s on the
- * comparison channel.
+ * Owns per-session state and translates `QuoteUpdate`s into `ComparisonSnapshot`s.
  *
- * @remarks
- * State machine per `SessionKey`:
- *
- * - **First update** → cache enters `pending`, fetch starts under a per-session
- *   `AbortController`, a `pending` snapshot is emitted, the TTL timer is armed.
- * - **Subsequent update, stale sequence** → dropped silently.
- * - **Subsequent update, new sequence** → emit a snapshot derived from the
- *   cached entry against the new `QuoteUpdate` (no refetch — the backend's
- *   `QuoteRequest` is fully determined by the session key, so amount changes
- *   alone never change the response). TTL timer is reset.
- * - **TTL elapsed** → abort in-flight fetch, drop cache entry, no trailing
- *   snapshot. Consumers can infer end-of-session from gaps in `update.sequence`.
- * - **Fetch resolution** → store outcome in cache, emit a fresh snapshot using
- *   the current best `QuoteUpdate` (or drop silently if the session has been
- *   evicted in the meantime).
- *
- * Aborted fetches do NOT emit a `failed` snapshot — they're intentional
- * cancellation.
+ * One fetch fires per session (first ingest). Subsequent updates within the
+ * session re-emit a snapshot against the cached fetch outcome without
+ * refetching — the backend `QuoteRequest` is fully determined by the session
+ * key, so amount changes can't alter the response. TTL eviction aborts the
+ * in-flight fetch and emits no trailing snapshot. Aborted fetch resolutions
+ * are dropped silently — not surfaced as `failed`.
  */
 export function createComparisonOrchestrator(
   options: ComparisonOrchestratorOptions,
@@ -97,8 +64,7 @@ export function createComparisonOrchestrator(
   const listeners = new Set<ComparisonSnapshotListener>();
 
   const emit = (snapshot: ComparisonSnapshot): void => {
-    // Iterate a copy so a listener unsubscribing mid-fanout (e.g. its port
-    // just dropped) doesn't skip a sibling.
+    // Iterate a copy so a listener unsubscribing mid-fanout doesn't skip a sibling.
     for (const listener of [...listeners]) listener(snapshot);
   };
 
@@ -147,7 +113,7 @@ export function createComparisonOrchestrator(
       .fetchBestQuote(buildRequest(update), { signal: controller.signal })
       .then((outcome) => {
         const session = sessions.get(sessionKey);
-        // Session evicted, or replaced by a later fetch — drop silently.
+        // Session evicted or replaced by a later fetch — drop silently.
         if (!session || session.controller !== controller) return;
         if (outcome.status === "aborted") return;
 
@@ -182,10 +148,7 @@ export function createComparisonOrchestrator(
         return;
       }
 
-      if (update.sequence <= existing.update.sequence) {
-        // Out-of-order or duplicate — drop.
-        return;
-      }
+      if (update.sequence <= existing.update.sequence) return;
 
       existing.update = update;
       clearTimeout(existing.ttlHandle);

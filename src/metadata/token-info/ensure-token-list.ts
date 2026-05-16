@@ -3,50 +3,24 @@ import { hydrateTokenIndex } from "./token-index";
 import { tokenList } from "./token-list-storage";
 import type { TokenList } from "./token-index";
 
-/**
- * How long a stored token list is considered fresh. After this, the next
- * {@link ensureTokenList} call refreshes from the backend.
- *
- * 24 h matches the backend's `s-maxage`, so the steady state is one
- * fetch/day per install.
- */
+/** 24 h matches the backend's `s-maxage` — one fetch/day per install steady state. */
 export const TOKEN_LIST_TTL_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Optional injection seam for tests.
- *
- * @internal
- */
+/** Test seams. */
 export type EnsureTokenListOptions = {
   fetchImpl?: typeof fetch;
-  /** Override `Date.now()` — used by tests with fake timers. */
   now?: () => number;
 };
 
 /**
- * Refresh the persisted token list from the backend if the stored copy is
- * stale, then hydrate the in-memory index.
+ * Background-only: refresh the stored token list if stale, then hydrate the
+ * in-memory index. Always hydrates from `storage.local` first so the lookup
+ * map is warm after an SW restart. Network failures are non-fatal — the
+ * stored copy stays in place and consumers render the `Unknown` fallback
+ * until the next successful refresh.
  *
- * **Background-only.** Content scripts call
- * {@link hydrateTokenListFromStorage} instead — they pick up the result of
- * this function via `storage.watch`, so the network fetch fires exactly
- * once per install, not once per open tab.
- *
- * Always hydrates the index from `storage.local`, even when the stored
- * copy is fresh — that's the path that warms the lookup map after a
- * service-worker restart. The network fetch is skipped when the cache is
- * within {@link TOKEN_LIST_TTL_MS}.
- *
- * @remarks
- * Idempotent and safe to call concurrently — a second call while a fetch
- * is in flight just races on `storage.setValue`, with last-write-wins; the
- * data being raced over is identical so the outcome doesn't matter.
- *
- * Network failures are non-fatal: the stored copy stays in place and the
- * index is hydrated from whatever was already persisted (which on a fresh
- * install is the empty fallback — `getTokenInfo` returns `null` for
- * everything until the next successful refresh, and consumers render the
- * `Unknown` fallback in the meantime).
+ * Content scripts use {@link hydrateTokenListFromStorage} instead, picking
+ * up writes from here via `storage.watch`.
  */
 export async function ensureTokenList(
   options: EnsureTokenListOptions = {},

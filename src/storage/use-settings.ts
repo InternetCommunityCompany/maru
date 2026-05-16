@@ -36,23 +36,9 @@ const subscribe = (listener: () => void): (() => void) => {
 const getSnapshot = (): Snapshot => snapshot;
 
 /**
- * React binding for the {@link settings} storage item. Returns the current
- * value plus an `update(patch)` mutator that round-trips through storage so
- * other surfaces observing the watcher stay in sync.
- *
- * @remarks
- * Backed by a module-singleton watcher: every consumer in this JS context
- * shares the same `storage.watch` callback and a single initial `getValue`,
- * so a page rendering N components calling `useSettings` does N=1 round-trip,
- * not N. Once a consumer mounts, the watcher stays attached for the lifetime
- * of the JS context.
- *
- * First render returns {@link SETTINGS_DEFAULTS} while the initial read is in
- * flight. Use the `loaded` flag to defer rendering of any control whose
- * visible state would flash if the user has overridden a default.
- *
- * Updates are merged against the latest snapshot so two patches dispatched
- * in the same tick compose correctly instead of racing on a stale value.
+ * React binding for {@link settings}. First render returns
+ * {@link SETTINGS_DEFAULTS} while the initial read is in flight — gate any
+ * control whose visible state would flash on `loaded`.
  */
 export function useSettings() {
   ensureWatcher();

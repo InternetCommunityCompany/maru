@@ -2,18 +2,10 @@ import { BACKEND_URL } from "@/backend-url";
 import type { BestQuote, QuoteRequest } from "./types";
 
 /**
- * Discriminated outcome of `fetchBestQuote`.
- *
- * `ok` carries the parsed `BestQuote`. `no_opinion` indicates the backend
- * returned `204` (no upstream had an answer). `failed` covers everything else
- * — non-2xx HTTP, network errors, timeouts, malformed bodies — and is
- * deliberately coarse: callers (the orchestrator) only branch on whether a
- * `ComparisonSnapshot` should be `result` / `no_opinion` / `failed`, and the
- * reason doesn't drive product behavior in V1.
- *
- * `aborted` is separate from `failed` so the orchestrator can drop the
- * outcome silently when it intentionally cancelled the request (session
- * evicted mid-flight) instead of emitting a `failed` snapshot.
+ * `failed.reason` is coarse — the orchestrator doesn't branch on it. `aborted`
+ * is split out so the orchestrator can drop the outcome silently when it
+ * intentionally cancelled (session evicted) instead of emitting a `failed`
+ * snapshot.
  */
 export type FetchBestQuoteOutcome =
   | { status: "ok"; quote: BestQuote }
@@ -21,46 +13,22 @@ export type FetchBestQuoteOutcome =
   | { status: "failed"; reason: string }
   | { status: "aborted" };
 
-/** Options for `fetchBestQuote`. */
 export type FetchBestQuoteOptions = {
-  /** AbortSignal — `fetchBestQuote` resolves with `{status: "aborted"}` when this fires. */
   signal?: AbortSignal;
-  /** Override the request timeout (ms). Defaults to `DEFAULT_FETCH_TIMEOUT_MS`. */
   timeoutMs?: number;
-  /** Override the global `fetch` — for tests. */
+  /** Override the global `fetch` for tests. */
   fetchImpl?: typeof fetch;
 };
 
-/**
- * Default per-request timeout (ms) for the backend `POST /api/quotes` call.
- *
- * The backend itself fans out to upstream aggregators with their own deadlines.
- * 8 s is generous enough to cover a worst-case upstream while still feeling
- * unresponsive to the user if it ever exhausts — at which point we fall through
- * to a `failed` snapshot.
- */
+/** Generous enough for the backend's upstream fan-out, snappy enough to feel responsive. */
 export const DEFAULT_FETCH_TIMEOUT_MS = 8_000;
 
 /**
- * POST `req` to the backend's `/api/quotes` and translate the HTTP outcome
- * into a `FetchBestQuoteOutcome`.
- *
- * Lives in the background service worker — that's where `host_permissions`
- * makes `fetch()` callable without per-tab CORS. The orchestrator passes an
- * `AbortSignal` so an in-flight request can be cancelled when the session is
- * evicted.
- *
- * @remarks
- * Outcome mapping:
- * - `200 OK` with parseable JSON → `ok`
- * - `204 No Content` → `no_opinion`
- * - Anything else (non-2xx, network, timeout, JSON parse failure) → `failed`
- * - `signal.aborted` (either pre-call or during the request) → `aborted`
- *
- * Response bodies are validated against the {@link BestQuote} shape at this
- * boundary by {@link isBestQuote} — a malformed response (e.g. backend
- * regression that ships `fetchedAt: "now"`) becomes a `failed` outcome
- * here instead of exploding at render time.
+ * POST `req` to `/api/quotes` and translate the HTTP outcome into a
+ * {@link FetchBestQuoteOutcome}. 200 → `ok` (with body validated by
+ * {@link isBestQuote}), 204 → `no_opinion`, anything else → `failed`,
+ * aborted-signal → `aborted`. Background-only — the backend host permission
+ * is what makes the call CORS-free.
  */
 export async function fetchBestQuote(
   req: QuoteRequest,

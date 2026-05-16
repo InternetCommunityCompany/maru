@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { score } from "./scorer";
-import type { Candidate, QuoteSession } from "./types";
+import type { Candidate } from "./types";
 
 const baseSwap = (overrides: Partial<SwapEvent> = {}): SwapEvent => ({
   kind: "swap",
@@ -33,18 +33,6 @@ const candidate = (overrides: Partial<Candidate> = {}): Candidate => ({
   ...overrides,
 });
 
-const emptySession = (): QuoteSession => ({
-  key: "k",
-  partialKey: "p",
-  openedAt: 0,
-  lastActivity: 0,
-  candidates: [],
-  bestCandidateId: null,
-  bestScore: -Infinity,
-  sequence: 0,
-  debounceHandle: null,
-});
-
 describe("score (provenance)", () => {
   it("ranks template candidates above heuristic candidates, holding rest equal", () => {
     const template = candidate({ swap: baseSwap({ templateId: "uniswap" }) });
@@ -52,9 +40,7 @@ describe("score (provenance)", () => {
       id: "c2",
       swap: baseSwap({ templateId: "heuristic" }),
     });
-    expect(score(template, emptySession())).toBeGreaterThan(
-      score(heuristic, emptySession()),
-    );
+    expect(score(template)).toBeGreaterThan(score(heuristic));
   });
 });
 
@@ -62,21 +48,18 @@ describe("score (phase)", () => {
   it("ranks response-phase candidates above request-phase candidates", () => {
     const response = candidate({ phase: "response" });
     const request = candidate({ id: "c2", phase: "request" });
-    expect(score(response, emptySession())).toBeGreaterThan(
-      score(request, emptySession()),
-    );
+    expect(score(response)).toBeGreaterThan(score(request));
   });
 
   it("treats error-phase candidates the same as request-phase for the bonus", () => {
     const error = candidate({ phase: "error" });
     const request = candidate({ id: "c2", phase: "request" });
-    expect(score(error, emptySession())).toBe(score(request, emptySession()));
+    expect(score(error)).toBe(score(request));
   });
 });
 
 describe("score (amountOut rank)", () => {
-  it("ranks a higher-amountOut candidate above a lower one in the same session", () => {
-    const session = emptySession();
+  it("ranks a higher-amountOut candidate above a lower one", () => {
     const small = candidate({
       id: "small",
       swap: baseSwap({ amountOut: "100" }),
@@ -85,26 +68,24 @@ describe("score (amountOut rank)", () => {
       id: "large",
       swap: baseSwap({ amountOut: "1000" }),
     });
-    session.candidates = [small];
-    expect(score(large, session)).toBeGreaterThan(score(small, session));
+    expect(score(large)).toBeGreaterThan(score(small));
   });
 
   it("handles bigint amountOut values without overflowing Number", () => {
-    const session = emptySession();
     const huge = candidate({
       id: "huge",
       // 100 ETH in wei — well past 2**53.
       swap: baseSwap({ amountOut: "100000000000000000000" }),
     });
-    expect(() => score(huge, session)).not.toThrow();
+    expect(() => score(huge)).not.toThrow();
   });
 });
 
 describe("score (grounding boost)", () => {
   it("adds the grounding boost on top of the scorer output", () => {
     const c = candidate();
-    const base = score(c, emptySession(), 0);
-    const boosted = score(c, emptySession(), 0.5);
+    const base = score(c, 0);
+    const boosted = score(c, 0.5);
     expect(boosted).toBeCloseTo(base + 0.5, 6);
   });
 });
@@ -117,8 +98,6 @@ describe("score (combined ordering)", () => {
       id: "c2",
       swap: baseSwap({ templateId: "heuristic" }),
     });
-    expect(score(grounded, emptySession(), 0.6)).toBeGreaterThan(
-      score(template, emptySession(), 0),
-    );
+    expect(score(grounded, 0.6)).toBeGreaterThan(score(template, 0));
   });
 });

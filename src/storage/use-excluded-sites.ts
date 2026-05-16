@@ -35,21 +35,9 @@ const subscribe = (listener: () => void): (() => void) => {
 const getSnapshot = (): Snapshot => snapshot;
 
 /**
- * React binding for the {@link excludedSites} storage item. Returns the
- * current list along with mutators that round-trip through storage so other
- * surfaces (popup, content script, options) observe the change.
- *
- * @remarks
- * Backed by a module-singleton watcher: every consumer shares the same
- * `storage.watch` callback. The previous per-mount implementation opened a
- * fresh watcher on every consumer.
- *
- * Initial render returns an empty array while the value is being read. Use
- * the `loaded` flag to distinguish "no exclusions yet" from "still loading"
- * so toggle UIs don't flash the wrong state.
- *
- * Mutators read from the latest snapshot so back-to-back calls within the
- * same render cycle compose correctly instead of racing on a stale value.
+ * React binding for {@link excludedSites}. Initial render returns `[]` while
+ * the read is in flight — use `loaded` to distinguish "empty" from "loading"
+ * in toggle UIs.
  */
 export function useExcludedSites() {
   ensureWatcher();
