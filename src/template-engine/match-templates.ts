@@ -1,3 +1,4 @@
+import { recordTrace } from "@/debug/debug-bus";
 import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { buildEvalContext, type EvalContext } from "./build-eval-context";
 import { buildSwapEvent, type SwapEvent } from "./build-swap-event";
@@ -94,56 +95,151 @@ export function matchTemplates(
 
   const out: SwapEvent[] = [];
   for (const tpl of templates) {
+    const reject = (failedField: string): void => {
+      recordTrace({
+        kind: "template_eval",
+        at: Date.now(),
+        templateId: tpl.id,
+        interceptedId: event.id,
+        result: "no_match",
+        failedField,
+      });
+    };
+
     const sources = asArray(tpl.match.source);
-    if (sources && !sources.includes(event.source)) continue;
+    if (sources && !sources.includes(event.source)) {
+      reject("source");
+      continue;
+    }
 
     const matchedDomain = matchesDomain(pageHost, tpl.match.domains);
-    if (!matchedDomain) continue;
+    if (!matchedDomain) {
+      reject("domain");
+      continue;
+    }
 
     const methods = asArray(tpl.match.method);
-    if (methods && !methods.includes(event.method)) continue;
+    if (methods && !methods.includes(event.method)) {
+      reject("method");
+      continue;
+    }
 
     if (event.source !== "ethereum" && tpl.match.urlPattern) {
       let urlRe: RegExp;
       try {
         urlRe = new RegExp(tpl.match.urlPattern);
       } catch {
+        reject("urlPattern");
         continue;
       }
-      if (!urlRe.test(event.url)) continue;
+      if (!urlRe.test(event.url)) {
+        reject("urlPattern");
+        continue;
+      }
     }
 
     const baseCtx = buildEvalContext(event);
-    if (!baseCtx) continue;
+    if (!baseCtx) {
+      reject("context");
+      continue;
+    }
 
     let ctx: EvalContext = baseCtx;
 
     if (event.source === "ethereum") {
       const tx = firstParam(event.params);
-      if (tpl.match.to && !matchesAddress(tx?.to, tpl.match.to)) continue;
+      if (tpl.match.to && !matchesAddress(tx?.to, tpl.match.to)) {
+        reject("to");
+        continue;
+      }
       if (tpl.match.abi) {
         const decoded = tx?.data
           ? decodeCalldata(tpl.match.abi, tx.data)
           : null;
-        if (!decoded) continue;
+        if (!decoded) {
+          reject("abi");
+          continue;
+        }
         ctx = { ...ctx, decoded: decoded.args };
       }
     }
 
     if (tpl.extract.iterate) {
       const items = evaluate(tpl.extract.iterate, ctx);
-      if (!Array.isArray(items)) continue;
-      for (const item of items) {
-        const swap = buildSwapEvent(tpl, matchedDomain, event, {
-          ...ctx,
-          item,
-        });
-        if (swap) out.push(swap);
+      if (!Array.isArray(items)) {
+        reject("iterate");
+        continue;
       }
+      let matchedAny = false;
+      let lastMissing: string | undefined;
+      for (const item of items) {
+        const swap = buildSwapEvent(
+          tpl,
+          matchedDomain,
+          event,
+          { ...ctx, item },
+          (f) => {
+            lastMissing = f;
+          },
+        );
+        if (swap) {
+          matchedAny = true;
+          recordTrace({
+            kind: "template_eval",
+            at: Date.now(),
+            templateId: tpl.id,
+            interceptedId: event.id,
+            result: "match",
+          });
+          recordTrace({
+            kind: "template_match",
+            at: Date.now(),
+            templateId: tpl.id,
+            interceptedId: event.id,
+            extractions: extractionsOf(swap),
+            swap,
+          });
+          out.push(swap);
+        }
+      }
+      // If `iterate` produced items but none built a SwapEvent, surface the
+      // missing field from the last failure as a single no-match trace.
+      if (!matchedAny) reject(lastMissing ?? "extraction");
     } else {
-      const swap = buildSwapEvent(tpl, matchedDomain, event, ctx);
-      if (swap) out.push(swap);
+      let lastMissing: string | undefined;
+      const swap = buildSwapEvent(tpl, matchedDomain, event, ctx, (f) => {
+        lastMissing = f;
+      });
+      if (swap === null) {
+        reject(lastMissing ?? "extraction");
+        continue;
+      }
+      recordTrace({
+        kind: "template_eval",
+        at: Date.now(),
+        templateId: tpl.id,
+        interceptedId: event.id,
+        result: "match",
+      });
+      recordTrace({
+        kind: "template_match",
+        at: Date.now(),
+        templateId: tpl.id,
+        interceptedId: event.id,
+        extractions: extractionsOf(swap),
+        swap,
+      });
+      out.push(swap);
     }
   }
   return out;
 }
+
+const extractionsOf = (swap: SwapEvent): Record<string, unknown> => ({
+  chainIn: swap.chainIn,
+  chainOut: swap.chainOut,
+  tokenIn: swap.tokenIn,
+  tokenOut: swap.tokenOut,
+  amountIn: swap.amountIn,
+  amountOut: swap.amountOut,
+});

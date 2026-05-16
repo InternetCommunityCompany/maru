@@ -1,3 +1,5 @@
+import { recordTrace } from "@/debug/debug-bus";
+import { matchesDomain } from "@/template-engine/matches-domain";
 import type { Template } from "@/template-engine/match-templates";
 import zeroXGasless from "./0x-gasless.json";
 import oneInchClassic from "./1inch-classic.json";
@@ -45,3 +47,30 @@ export const registry: Template[] = [
   uniswap as Template,
   uniswapV2Router as Template,
 ];
+
+/**
+ * Dev-only side effect: emit `template_loaded` for every template whose
+ * `match.domains` covers the current page host. Templates without a `domains`
+ * filter match any host. `Template` carries no `version` field today, so the
+ * human-readable `name` doubles as the version on the trace event.
+ *
+ * Call once at the entrypoint (`injected.content.ts`) after the trace bus is
+ * wired up — invoking it from module load would fire before the relay
+ * listener attaches in dev. In production, `recordTrace` is a no-op so this
+ * loop's cost reduces to a single registry scan.
+ */
+export const announceLoadedTemplates = (): void => {
+  if (typeof window === "undefined") return;
+  const host = window.location.host;
+  for (const tpl of registry) {
+    const matched = matchesDomain(host, tpl.match.domains);
+    if (matched === null) continue;
+    recordTrace({
+      kind: "template_loaded",
+      at: Date.now(),
+      templateId: tpl.id,
+      version: tpl.name,
+      hostMatch: matched,
+    });
+  }
+};

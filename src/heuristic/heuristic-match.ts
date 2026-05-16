@@ -1,3 +1,4 @@
+import { recordTrace } from "@/debug/debug-bus";
 import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import { normalizeTokenAddress } from "@/template-engine/normalize-token-address";
 import type { SwapEvent } from "@/template-engine/build-swap-event";
@@ -52,9 +53,27 @@ export function heuristicMatch(
   event: InterceptedEvent,
   pageHost: string = window.location.host,
 ): SwapEvent | null {
-  if (event.source !== "fetch" && event.source !== "xhr") return null;
-  if (event.phase !== "response") return null;
+  const trace = (matched: boolean, reason?: string): void => {
+    recordTrace({
+      kind: "heuristic_eval",
+      at: Date.now(),
+      interceptedId: event.id,
+      signal: "alias-scan",
+      matched,
+      ...(reason !== undefined ? { reason } : {}),
+    });
+  };
+
+  if (event.source !== "fetch" && event.source !== "xhr") {
+    trace(false, "source");
+    return null;
+  }
+  if (event.phase !== "response") {
+    trace(false, "phase");
+    return null;
+  }
   if (event.status != null && (event.status < 200 || event.status >= 300)) {
+    trace(false, "status");
     return null;
   }
 
@@ -62,7 +81,10 @@ export function heuristicMatch(
   const res = tryParseJson(event.responseBody);
   const params = parseUrlParams(event.url);
   const hasParams = Object.keys(params).length > 0;
-  if (req === undefined && res === undefined && !hasParams) return null;
+  if (req === undefined && res === undefined && !hasParams) {
+    trace(false, "empty");
+    return null;
+  }
 
   const findIn = <T>(
     aliases: readonly string[],
@@ -91,13 +113,27 @@ export function heuristicMatch(
     chainIn === null ||
     chainOut === null
   ) {
+    const missing =
+      tokenIn === null
+        ? "tokenIn"
+        : tokenOut === null
+          ? "tokenOut"
+          : amountIn === null
+            ? "amountIn"
+            : amountOut === null
+              ? "amountOut"
+              : chainIn === null
+                ? "chainIn"
+                : "chainOut";
+    trace(false, missing);
     return null;
   }
 
   const fromAddress =
     findIn(HEURISTIC_ALIASES.fromAddress, asAddress) ?? undefined;
 
-  return {
+  trace(true);
+  const swap: SwapEvent = {
     kind: "swap",
     type: chainIn === chainOut ? "swap" : "bridge",
     templateId: "heuristic",
@@ -115,4 +151,19 @@ export function heuristicMatch(
       method: event.method,
     },
   };
+  recordTrace({
+    kind: "heuristic_match",
+    at: Date.now(),
+    interceptedId: event.id,
+    extractions: {
+      chainIn: swap.chainIn,
+      chainOut: swap.chainOut,
+      tokenIn: swap.tokenIn,
+      tokenOut: swap.tokenOut,
+      amountIn: swap.amountIn,
+      amountOut: swap.amountOut,
+    },
+    swap,
+  });
+  return swap;
 }

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Arbiter } from "./tabs/Arbiter";
 import { Compare } from "./tabs/Compare";
+import { Heuristics } from "./tabs/Heuristics";
+import { Templates } from "./tabs/Templates";
 import { useDebugStream } from "./use-debug-stream";
 
 type TabKey = "templates" | "heuristics" | "arbiter" | "compare";
@@ -38,8 +40,8 @@ export function App() {
       <section>
         {active === "arbiter" && <Arbiter stream={stream} />}
         {active === "compare" && <Compare stream={stream} />}
-        {active === "templates" && <p>(Templates tab lands in MAR-100.)</p>}
-        {active === "heuristics" && <p>(Heuristics tab lands in MAR-100.)</p>}
+        {active === "templates" && <Templates stream={stream} />}
+        {active === "heuristics" && <Heuristics stream={stream} />}
       </section>
     </div>
   );

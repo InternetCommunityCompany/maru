@@ -7,13 +7,16 @@ import { heuristicMatch } from "@/heuristic/heuristic-match";
 import { emitDebug } from "@/messaging/debug-channel";
 import { emitQuote } from "@/messaging/quote-channel";
 import { matchTemplates } from "@/template-engine/match-templates";
-import { registry } from "@/templates/registry";
+import { announceLoadedTemplates, registry } from "@/templates/registry";
 
 if (import.meta.env.DEV) {
   // Mirror MAIN-world traces onto the window envelope so the ISOLATED relay
   // can forward them to the background buffer. Vite DCE drops this block
   // (and the two imports above that only flow through it) in production.
   onTrace(emitDebug);
+  // Emit `template_loaded` for every registry entry that matches the current
+  // host. Must run AFTER `onTrace(emitDebug)` so the relay is listening.
+  announceLoadedTemplates();
 }
 
 export default defineContentScript({
