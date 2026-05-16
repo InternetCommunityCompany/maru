@@ -4,6 +4,19 @@ import type { SwapEvent } from "@/template-engine/build-swap-event";
 export type CandidatePhase = InterceptedEvent["phase"];
 
 /**
+ * Per-candidate scorer output, broken down by contributing factor. Defined
+ * here (rather than in `scorer.ts`) so debug-bus event types can reference it
+ * without introducing a back-edge; MAR-96 will switch `score()` to return it.
+ */
+export type ScoreBreakdown = {
+  provenance: number;
+  phase: number;
+  rank: number;
+  grounding: number;
+  total: number;
+};
+
+/**
  * A `SwapEvent` wrapped with the ingest-site metadata the arbiter and scorer
  * need but which the engines deliberately don't carry. The wrap happens at
  * the arbiter ingest boundary so detection engines stay pure `SwapEvent`
