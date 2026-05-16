@@ -8,6 +8,7 @@ import type {
   GroundingProvider,
   QuoteSession,
   QuoteUpdate,
+  ScoreBreakdown,
 } from "./types";
 import { CONFIDENCE } from "./types";
 
@@ -21,7 +22,7 @@ export type ArbiterOptions = {
   store?: SessionStore;
   /** Time source for deterministic tests. */
   now?: () => number;
-  score?: (candidate: Candidate, boost: number) => number;
+  score?: (candidate: Candidate, boost: number) => ScoreBreakdown;
 };
 
 export type Arbiter = {
@@ -104,7 +105,7 @@ export function createArbiter(options: ArbiterOptions): Arbiter {
 
       const boosts = groundingProvider([...session.candidates, candidate]);
       const boost = boosts.get(candidate.id) ?? 0;
-      const candidateScore = scoreFn(candidate, boost);
+      const candidateScore = scoreFn(candidate, boost).total;
 
       session.candidates.push(candidate);
       session.lastActivity = now();

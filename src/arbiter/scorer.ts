@@ -1,4 +1,4 @@
-import type { Candidate } from "./types";
+import type { Candidate, ScoreBreakdown } from "./types";
 
 const PROVENANCE_TEMPLATE = 0.6;
 const PROVENANCE_HEURISTIC = 0.3;
@@ -33,23 +33,32 @@ const amountOutRank = (candidate: Candidate): number => {
 };
 
 /**
- * Pure scorer for an arbiter candidate. Higher is better.
+ * Pure scorer for an arbiter candidate. Higher `total` is better.
  *
- * Score = provenance (template 0.6, heuristic 0.3) + response-phase bonus (0.2)
- * + log-scale amountOut rank (≤ 0.256 for a 256-bit value) + grounding boost
- * (≥ 0). The amountOut rank uses bit-length so wei-scale `bigint`s don't blow
- * up the score; provenance + phase dominate it for normal inputs, but a
- * strong grounding boost can override provenance.
+ * Returns a {@link ScoreBreakdown} so consumers (e.g. the Arbiter debug tab)
+ * can render the contributing factors directly. The weights are: provenance
+ * (template 0.6, heuristic 0.3), response-phase bonus (0.2), log-scale
+ * amountOut rank (≤ 0.256 for a 256-bit value), and grounding boost (≥ 0).
+ * The amountOut rank uses bit-length so wei-scale `bigint`s don't blow up the
+ * score; provenance + phase dominate it for normal inputs, but a strong
+ * grounding boost can override provenance.
  */
 export function score(
   candidate: Candidate,
   groundingBoost: number = 0,
-): number {
+): ScoreBreakdown {
   const provenance =
     candidate.swap.templateId === "heuristic"
       ? PROVENANCE_HEURISTIC
       : PROVENANCE_TEMPLATE;
   const phase = candidate.phase === "response" ? RESPONSE_BONUS : 0;
   const rank = amountOutRank(candidate);
-  return provenance + phase + rank + groundingBoost;
+  const grounding = groundingBoost;
+  return {
+    provenance,
+    phase,
+    rank,
+    grounding,
+    total: provenance + phase + rank + grounding,
+  };
 }
