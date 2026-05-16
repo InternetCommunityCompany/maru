@@ -1,6 +1,7 @@
 {
   "id": "lifi",
   "name": "LI.FI",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

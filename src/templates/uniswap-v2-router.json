@@ -1,6 +1,7 @@
 {
   "id": "uniswap-v2-router",
   "name": "Uniswap V2 Router",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "ethereum",

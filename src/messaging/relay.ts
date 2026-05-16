@@ -1,4 +1,5 @@
 import { connectWithReconnect, type Reconnector } from "./connect-with-reconnect";
+import { DEBUG_PORT_NAME, isDebugEnvelope } from "./debug-channel";
 import { QUOTE_PORT_NAME, isQuoteEnvelope } from "./quote-channel";
 
 /**
@@ -30,6 +31,37 @@ export function startContentRelay(): Reconnector {
       // log so non-port errors (e.g. an unserializable update silently
       // breaking the wire) aren't invisible.
       console.warn("[maru] relay postMessage failed", err);
+    }
+  });
+
+  return reconnector;
+}
+
+/**
+ * Dev-only sibling of {@link startContentRelay} for the debug pipeline. Filters
+ * window traffic by {@link isDebugEnvelope}, strips the envelope, and forwards
+ * onto a reconnecting `maru:debug` port. Call once at `document_start` in dev
+ * content scripts only.
+ */
+export function startDebugRelay(): Reconnector {
+  let activePort: Browser.runtime.Port | null = null;
+
+  const reconnector = connectWithReconnect(DEBUG_PORT_NAME, (port) => {
+    activePort = port;
+    port.onDisconnect.addListener(() => {
+      if (activePort === port) activePort = null;
+    });
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    if (!isDebugEnvelope(event.data)) return;
+    const port = activePort;
+    if (port === null) return;
+    try {
+      port.postMessage(event.data.event);
+    } catch (err) {
+      console.warn("[maru] debug relay postMessage failed", err);
     }
   });
 

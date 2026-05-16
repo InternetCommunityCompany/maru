@@ -29,6 +29,7 @@ safe to add liberally.
 {
   "id": "jumper",
   "name": "Jumper",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "domains": ["jumper.xyz", "jumper.exchange"],
@@ -49,13 +50,14 @@ safe to add liberally.
 
 ### Top-level fields
 
-| Field    | Type    | Notes |
-|----------|---------|-------|
-| `id`     | string  | Stable identifier; used in events as `templateId`. |
-| `name`   | string  | Human-readable name. |
-| `schema` | string  | Output schema. Currently `"swap"`. |
-| `match`  | object  | See [Match block](#match-block). |
-| `extract`| object  | See [Extract block](#extract-block). |
+| Field     | Type    | Notes |
+|-----------|---------|-------|
+| `id`      | string  | Stable identifier; used in events as `templateId`. |
+| `name`    | string  | Human-readable name. |
+| `version` | string  | Template definition version, independent of the dapp's API version. Surfaced on the DevTools `template_loaded` debug event so editing a template between sessions shows up in the panel. Bump when `match` or `extract` rules change in a way a debugger should notice; semver-ish strings recommended but treated as opaque by the engine. |
+| `schema`  | string  | Output schema. Currently `"swap"`. |
+| `match`   | object  | See [Match block](#match-block). |
+| `extract` | object  | See [Extract block](#extract-block). |
 
 ### Match block
 

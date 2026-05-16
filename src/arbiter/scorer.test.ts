@@ -40,7 +40,7 @@ describe("score (provenance)", () => {
       id: "c2",
       swap: baseSwap({ templateId: "heuristic" }),
     });
-    expect(score(template)).toBeGreaterThan(score(heuristic));
+    expect(score(template).total).toBeGreaterThan(score(heuristic).total);
   });
 });
 
@@ -48,13 +48,13 @@ describe("score (phase)", () => {
   it("ranks response-phase candidates above request-phase candidates", () => {
     const response = candidate({ phase: "response" });
     const request = candidate({ id: "c2", phase: "request" });
-    expect(score(response)).toBeGreaterThan(score(request));
+    expect(score(response).total).toBeGreaterThan(score(request).total);
   });
 
   it("treats error-phase candidates the same as request-phase for the bonus", () => {
     const error = candidate({ phase: "error" });
     const request = candidate({ id: "c2", phase: "request" });
-    expect(score(error)).toBe(score(request));
+    expect(score(error).total).toBe(score(request).total);
   });
 });
 
@@ -68,7 +68,7 @@ describe("score (amountOut rank)", () => {
       id: "large",
       swap: baseSwap({ amountOut: "1000" }),
     });
-    expect(score(large)).toBeGreaterThan(score(small));
+    expect(score(large).total).toBeGreaterThan(score(small).total);
   });
 
   it("handles bigint amountOut values without overflowing Number", () => {
@@ -84,8 +84,8 @@ describe("score (amountOut rank)", () => {
 describe("score (grounding boost)", () => {
   it("adds the grounding boost on top of the scorer output", () => {
     const c = candidate();
-    const base = score(c, 0);
-    const boosted = score(c, 0.5);
+    const base = score(c, 0).total;
+    const boosted = score(c, 0.5).total;
     expect(boosted).toBeCloseTo(base + 0.5, 6);
   });
 });
@@ -98,6 +98,6 @@ describe("score (combined ordering)", () => {
       id: "c2",
       swap: baseSwap({ templateId: "heuristic" }),
     });
-    expect(score(grounded, 0.6)).toBeGreaterThan(score(template, 0));
+    expect(score(grounded, 0.6).total).toBeGreaterThan(score(template, 0).total);
   });
 });

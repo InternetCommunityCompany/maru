@@ -1,6 +1,7 @@
 {
   "id": "1inch-classic",
   "name": "1inch Classic Swap",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

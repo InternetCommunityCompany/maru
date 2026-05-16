@@ -92,12 +92,18 @@ const buildTransport = (event: InterceptedEvent): SwapEvent["transport"] =>
  * validator. `chainIn`/`chainOut` are coerced to numbers (with `bigint`
  * handled), the rest to strings (which `String(bigint)` stringifies
  * losslessly); unknown fields pass through as-is.
+ *
+ * @param onMissing optional dev-only callback invoked with the first missing
+ * required field name when extraction fails. Lets callers (notably the trace
+ * machinery in `match-templates`) surface *which* field rejected the template
+ * without leaking debug shape into the return type.
  */
 export const buildSwapEvent = (
   template: Template,
   matchedDomain: string,
   event: InterceptedEvent,
   ctx: EvalContext,
+  onMissing?: (field: string) => void,
 ): SwapEvent | null => {
   const out: Record<string, unknown> = {};
   if (template.extract.static) {
@@ -111,7 +117,10 @@ export const buildSwapEvent = (
     if (value !== undefined) out[field] = value;
   }
   for (const required of REQUIRED_FIELDS) {
-    if (out[required] === undefined) return null;
+    if (out[required] === undefined) {
+      onMissing?.(required);
+      return null;
+    }
   }
   const chainIn = out.chainIn as number;
   const chainOut = out.chainOut as number;

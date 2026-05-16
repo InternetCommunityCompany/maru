@@ -1,6 +1,7 @@
 {
   "id": "cowswap",
   "name": "CoW Swap",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

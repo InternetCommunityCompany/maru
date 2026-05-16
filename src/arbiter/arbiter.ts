@@ -1,3 +1,4 @@
+import { recordTrace } from "@/debug/debug-bus";
 import type { InterceptedEvent } from "@/interceptors/install-interceptors";
 import type { SwapEvent } from "@/template-engine/build-swap-event";
 import { score as defaultScore } from "./scorer";
@@ -8,6 +9,7 @@ import type {
   GroundingProvider,
   QuoteSession,
   QuoteUpdate,
+  ScoreBreakdown,
 } from "./types";
 import { CONFIDENCE } from "./types";
 
@@ -21,7 +23,7 @@ export type ArbiterOptions = {
   store?: SessionStore;
   /** Time source for deterministic tests. */
   now?: () => number;
-  score?: (candidate: Candidate, boost: number) => number;
+  score?: (candidate: Candidate, boost: number) => ScoreBreakdown;
 };
 
 export type Arbiter = {
@@ -77,12 +79,21 @@ export function createArbiter(options: ArbiterOptions): Arbiter {
     session.sequence += 1;
     const confidence =
       boost > 0 ? CONFIDENCE.grounded : initialConfidence(best.swap.templateId);
-    options.emit({
+    const update: QuoteUpdate = {
       swap: best.swap,
       sessionKey: session.key,
       sequence: session.sequence,
       confidence,
       candidateId: best.id,
+    };
+    options.emit(update);
+    recordTrace({
+      kind: "quote_emitted",
+      at: now(),
+      sessionKey: session.key,
+      sequence: session.sequence,
+      candidateId: best.id,
+      confidence,
     });
   };
 
@@ -91,6 +102,16 @@ export function createArbiter(options: ArbiterOptions): Arbiter {
       const key = sessionKey(swap);
       const partial = partialSessionKey(swap);
       const { session, opened } = store.openOrGet(key, partial);
+
+      if (opened) {
+        recordTrace({
+          kind: "session_opened",
+          at: now(),
+          sessionKey: key,
+          domain: swap.domain,
+          partialKey: partial,
+        });
+      }
 
       const candidate: Candidate = {
         id: candidateIdOf(raw, swap),
@@ -102,17 +123,44 @@ export function createArbiter(options: ArbiterOptions): Arbiter {
         ingestedAt: now(),
       };
 
+      recordTrace({
+        kind: "candidate_added",
+        at: candidate.ingestedAt,
+        sessionKey: key,
+        candidateId: candidate.id,
+        phase: candidate.phase,
+        source: candidate.source,
+        templateId: swap.templateId,
+      });
+
       const boosts = groundingProvider([...session.candidates, candidate]);
       const boost = boosts.get(candidate.id) ?? 0;
-      const candidateScore = scoreFn(candidate, boost);
+      const breakdown = scoreFn(candidate, boost);
+      const candidateScore = breakdown.total;
+      recordTrace({
+        kind: "score_breakdown",
+        at: now(),
+        sessionKey: key,
+        candidateId: candidate.id,
+        breakdown,
+      });
 
       session.candidates.push(candidate);
       session.lastActivity = now();
 
       const outscored = candidateScore > session.bestScore;
       if (outscored) {
+        const previousId = session.bestCandidateId;
         session.bestCandidateId = candidate.id;
         session.bestScore = candidateScore;
+        recordTrace({
+          kind: "best_changed",
+          at: now(),
+          sessionKey: key,
+          previousId,
+          nextId: candidate.id,
+          score: candidateScore,
+        });
       }
 
       if (opened) {
