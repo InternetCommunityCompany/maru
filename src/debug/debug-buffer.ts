@@ -12,7 +12,8 @@ const listenersByTab = new Map<number, Set<Listener>>();
  * {@link MAX_EVENTS_PER_TAB} (FIFO drop). Subscribers receive only events
  * pushed *after* subscribing — no backfill — so the DevTools panel must open
  * before traces are interesting. A throwing subscriber is logged and skipped;
- * siblings still receive the event.
+ * siblings still receive the event. `clear(tabId)` drops buffered events but
+ * leaves listeners intact so a DevTools panel surviving a reset keeps streaming.
  */
 export const debugBuffer = {
   push(tabId: number, event: DebugEvent): void {

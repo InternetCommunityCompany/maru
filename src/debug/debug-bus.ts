@@ -20,6 +20,11 @@ export const recordTrace = (event: DebugEvent): void => {
 /**
  * Same-world subscription, used only by the dev-only debug relay that mirrors
  * MAIN-world traces to the background ring buffer. No-op in production.
+ *
+ * Register-once and lives for the lifetime of the content script — the relay
+ * is the only consumer and attaches once at `document_start`. No
+ * `removeEventListener`-style unsubscribe is exposed to keep the surface
+ * minimal.
  */
 export const onTrace = (listener: (event: DebugEvent) => void): void => {
   if (bus === null) return;
