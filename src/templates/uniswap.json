@@ -1,6 +1,7 @@
 {
   "id": "uniswap",
   "name": "Uniswap",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

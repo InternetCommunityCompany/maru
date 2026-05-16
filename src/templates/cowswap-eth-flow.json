@@ -1,6 +1,7 @@
 {
   "id": "cowswap-eth-flow",
   "name": "CoW Swap ETH-Flow",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "ethereum",

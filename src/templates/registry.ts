@@ -51,8 +51,7 @@ export const registry: Template[] = [
 /**
  * Dev-only side effect: emit `template_loaded` for every template whose
  * `match.domains` covers the current page host. Templates without a `domains`
- * filter match any host. `Template` carries no `version` field today, so the
- * human-readable `name` doubles as the version on the trace event.
+ * filter match any host.
  *
  * Call once at the entrypoint (`injected.content.ts`) after the trace bus is
  * wired up — invoking it from module load would fire before the relay
@@ -69,7 +68,7 @@ export const announceLoadedTemplates = (): void => {
       kind: "template_loaded",
       at: Date.now(),
       templateId: tpl.id,
-      version: tpl.name,
+      version: tpl.version,
       hostMatch: matched,
     });
   }

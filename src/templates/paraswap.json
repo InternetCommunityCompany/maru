@@ -1,6 +1,7 @@
 {
   "id": "paraswap",
   "name": "ParaSwap",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

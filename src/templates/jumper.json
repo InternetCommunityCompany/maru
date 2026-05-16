@@ -1,6 +1,7 @@
 {
   "id": "jumper",
   "name": "Jumper",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "domains": ["jumper.xyz", "jumper.exchange"],

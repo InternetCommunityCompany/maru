@@ -1,6 +1,7 @@
 {
   "id": "bungee",
   "name": "Bungee",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

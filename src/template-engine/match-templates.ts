@@ -20,6 +20,15 @@ type Source = InterceptedEvent["source"];
 export type Template = {
   id: string;
   name: string;
+  /**
+   * Template definition version, independent of the dapp's API version.
+   * Surfaces on `template_loaded` debug events so the DevTools panel can
+   * distinguish templates that were edited between sessions. Bump when the
+   * template's `match` or `extract` rules change in a way a debugger might
+   * want to notice — same identity, evolved behaviour. Semver-ish strings
+   * are recommended; the engine treats it as an opaque label.
+   */
+  version: string;
   schema: "swap";
   match: {
     /** Restricts which interceptor source(s) this template applies to. Omit to match any source. */

@@ -1,6 +1,7 @@
 {
   "id": "0x-gasless",
   "name": "0x Gasless",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",

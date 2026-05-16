@@ -1,6 +1,7 @@
 {
   "id": "1inch-fusion-plus",
   "name": "1inch Fusion+",
+  "version": "1.0.0",
   "schema": "swap",
   "match": {
     "source": "fetch",
